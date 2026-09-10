@@ -199,6 +199,17 @@
         .ai-nav{display:none}
       }
       @media(max-width:400px){.main-nav .nav-item span{font-size:10px}}
+      @media(max-width:767px){
+        .workspace-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 10px;min-height:0;padding:12px 0 6px;font-size:12px}
+        .workspace-date{font-size:11px;color:var(--text-muted)}
+        .account-sync{display:none}
+        .account-button{min-height:36px;padding:0 10px;font-size:12px}
+        .topbar{gap:12px;padding:8px 0 14px}
+        .eyebrow{display:none}
+        .topbar h1{margin:0;font-size:20px;line-height:1.4}
+        .view-subtitle{margin-top:2px;font-size:12px}
+        .topbar > .primary-button,.topbar .primary-button{width:auto;min-width:44px;min-height:42px;padding:0 16px;align-self:flex-start}
+      }
     </style>
   </head>
   <body>
