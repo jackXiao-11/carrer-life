@@ -5,13 +5,14 @@ export async function onRequestGet(context) {
   const { request, env } = context;
   if (!sameOrigin(request)) return json({ error: "不允许从其他网站调用此接口。" }, 403);
   const rows = await env.DB.prepare(
-    `SELECT p.user_id, p.display_name, p.xp FROM profiles p
+    `SELECT p.user_id, p.display_name, p.xp, p.avatar FROM profiles p
      JOIN accounts a ON a.id = p.user_id
      WHERE p.xp > 0 ORDER BY p.xp DESC, p.updated_at ASC LIMIT 10`,
   ).all();
   const entries = (rows.results || []).map((row, index) => ({
     rank: index + 1,
     displayName: row.display_name,
+    avatar: row.avatar || null,
     xp: row.xp,
     level: getLevelInfo(row.xp).level,
     levelName: getLevelInfo(row.xp).name,

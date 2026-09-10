@@ -137,6 +137,19 @@ const elements = {
   leaderboardList: document.querySelector("#leaderboard-list"),
   leaderboardRefresh: document.querySelector("#leaderboard-refresh"),
   myRankCard: document.querySelector("#my-rank-card"),
+  brandAvatar: document.querySelector("#brand-avatar"),
+  brandIcon: document.querySelector("#brand-icon"),
+  sidebarAvatar: document.querySelector("#sidebar-avatar"),
+  avatarPreview: document.querySelector("#avatar-preview"),
+  avatarInput: document.querySelector("#avatar-input"),
+  avatarRemove: document.querySelector("#avatar-remove"),
+  statsGrid: document.querySelector("#stats-grid"),
+  statsDonut: document.querySelector("#stats-donut"),
+  donutCenter: document.querySelector("#donut-center"),
+  donutLegend: document.querySelector("#donut-legend"),
+  statsBars: document.querySelector("#stats-bars"),
+  statsBarLabels: document.querySelector("#stats-bar-labels"),
+  statsEmpty: document.querySelector("#stats-empty"),
 };
 
 initialize();
@@ -238,6 +251,8 @@ function bindEvents() {
   elements.collabList?.addEventListener("change", handleCollabToggle);
   elements.collabList?.addEventListener("click", handleCollabDelete);
   elements.leaderboardRefresh?.addEventListener("click", loadLeaderboard);
+  elements.avatarInput?.addEventListener("change", handleAvatarSelect);
+  elements.avatarRemove?.addEventListener("click", removeAvatar);
   elements.chatModel.addEventListener("change", () =>
     selectModel(elements.chatModel.value),
   );
@@ -522,6 +537,23 @@ function applyProfileUi() {
   if (elements.sidebarXp) elements.sidebarXp.hidden = !loggedIn;
   if (elements.workspaceLogin) elements.workspaceLogin.hidden = loggedIn;
   if (elements.workspaceGrid) elements.workspaceGrid.hidden = !loggedIn;
+  const avatar = profileCache?.avatar || null;
+  if (elements.brandAvatar && elements.brandIcon) {
+    elements.brandAvatar.hidden = !avatar;
+    elements.brandIcon.style.display = avatar ? "none" : "";
+    if (avatar) elements.brandAvatar.src = avatar;
+  }
+  if (elements.sidebarAvatar) {
+    elements.sidebarAvatar.hidden = !avatar;
+    if (avatar) elements.sidebarAvatar.src = avatar;
+  }
+  if (elements.avatarPreview) {
+    elements.avatarPreview.innerHTML = avatar
+      ? `<img src="${avatar}" alt="头像预览" />`
+      : `<i data-lucide="user-round"></i>`;
+    refreshIcons();
+  }
+  if (elements.avatarRemove) elements.avatarRemove.hidden = !avatar;
   if (!loggedIn) return;
   const info = profileCache ? profileCache.level : getCultivationLevel(0);
   const xp = profileCache?.xp || 0;
@@ -578,7 +610,9 @@ async function loadProfile() {
 async function loadWorkspace() {
   applyProfileUi();
   if (!accountUser) return;
+  renderWorkspaceStats();
   await Promise.all([loadProfile(), loadFriends(), loadCollabTasks()]);
+  renderWorkspaceStats();
 }
 
 async function requestTaskXp(type = "task") {
@@ -630,9 +664,133 @@ async function saveDisplayName(event) {
     profileCache = data.profile;
     applyProfileUi();
     showToast(`道号已定为「${value}」`);
+    loadLeaderboard();
   } catch (error) {
     showToast(error.message || "保存失败");
   }
+}
+
+function resizeAvatarToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("图片读取失败。"));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error("图片格式无法识别。"));
+      image.onload = () => {
+        const size = 128;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const context = canvas.getContext("2d");
+        const side = Math.min(image.naturalWidth, image.naturalHeight);
+        context.drawImage(
+          image,
+          (image.naturalWidth - side) / 2,
+          (image.naturalHeight - side) / 2,
+          side,
+          side,
+          0,
+          0,
+          size,
+          size,
+        );
+        resolve(canvas.toDataURL("image/jpeg", 0.85));
+      };
+      image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleAvatarSelect(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (file.size > 8 * 1024 * 1024) return showToast("图片不能超过 8MB。");
+  try {
+    const avatar = await resizeAvatarToDataUrl(file);
+    const response = await fetch("/api/profile", {
+      method: "PUT", credentials: "same-origin",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ avatar }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "头像上传失败。");
+    profileCache = data.profile;
+    applyProfileUi();
+    showToast("头像已更新");
+    loadLeaderboard();
+  } catch (error) {
+    showToast(error.message || "头像上传失败");
+  } finally {
+    event.target.value = "";
+  }
+}
+
+async function removeAvatar() {
+  try {
+    const response = await fetch("/api/profile", {
+      method: "PUT", credentials: "same-origin",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ avatar: "" }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "移除失败。");
+    profileCache = data.profile;
+    applyProfileUi();
+    showToast("已恢复默认图标");
+    loadLeaderboard();
+  } catch (error) {
+    showToast(error.message || "移除失败");
+  }
+}
+
+function renderWorkspaceStats() {
+  if (!elements.statsDonut || !elements.statsBars) return;
+  const days = [];
+  for (let offset = 6; offset >= 0; offset -= 1) {
+    const date = new Date(Date.now() - offset * 86400 * 1000);
+    days.push(getLocalDate(date));
+  }
+  const recent = state.tasks.filter((task) => task.completed && days.includes(task.date));
+  const counts = days.map((day) => recent.filter((task) => task.date === day).length);
+  const total = recent.length;
+  const hasData = total > 0;
+  if (elements.statsEmpty) elements.statsEmpty.hidden = hasData;
+  if (elements.statsGrid) elements.statsGrid.hidden = !hasData;
+  if (!hasData) return;
+
+  const categoryColors = { work: "#2563eb", software: "#7c3aed", english: "#f59e0b" };
+  const segments = Object.keys(categoryLabels)
+    .map((key) => ({ key, label: categoryLabels[key], color: categoryColors[key], count: recent.filter((task) => task.category === key).length }))
+    .filter((segment) => segment.count > 0);
+  const circumference = 2 * Math.PI * 15.9155;
+  let offset = 0;
+  const circles = segments.map((segment) => {
+    const length = (segment.count / total) * circumference;
+    const circle = `<circle cx="21" cy="21" r="15.9155" stroke="${segment.color}" stroke-dasharray="${length} ${circumference - length}" stroke-dashoffset="${-offset}"></circle>`;
+    offset += length;
+    return circle;
+  });
+  elements.statsDonut.innerHTML = `<circle cx="21" cy="21" r="15.9155" stroke="#e2e8f0" stroke-dasharray="${circumference} 0"></circle>${circles.join("")}`;
+  elements.donutCenter.textContent = total;
+  elements.donutLegend.innerHTML = segments
+    .map((segment) => `<span><i style="background:${segment.color}"></i>${segment.label} ${Math.round((segment.count / total) * 100)}%（${segment.count}）</span>`)
+    .join("");
+
+  const maxCount = Math.max(...counts, 1);
+  const weekdayNames = ["日", "一", "二", "三", "四", "五", "六"];
+  elements.statsBars.innerHTML = counts
+    .map((count, index) => `
+      <div class="bar-col ${index === 6 ? "today" : ""}">
+        <span class="bar-count">${count || ""}</span>
+        <div class="bar-fill" style="height:${Math.max(3, (count / maxCount) * 100)}%"></div>
+      </div>`).join("");
+  elements.statsBarLabels.innerHTML = days
+    .map((day, index) => {
+      const date = new Date(`${day}T00:00:00`);
+      return `<span>${index === 6 ? "今天" : `周${weekdayNames[date.getDay()]}`}</span>`;
+    }).join("");
 }
 
 async function loadFriends() {
@@ -811,29 +969,53 @@ async function handleCollabDelete(event) {
 
 async function loadLeaderboard() {
   if (!elements.leaderboardList) return;
-  elements.leaderboardList.innerHTML = '<li class="plaza-empty">正在加载修真榜…</li>';
+  elements.leaderboardList.innerHTML = '<p class="plaza-empty">正在加载修真榜…</p>';
   try {
-    const response = await fetch("/api/leaderboard", { credentials: "same-origin", headers: { Accept: "application/json" } });
+    const response = await fetch("/api/leaderboard", { credentials: "same-origin", cache: "no-store", headers: { Accept: "application/json" } });
     if (!response.ok) throw new Error("load failed");
     const data = await response.json();
-    elements.leaderboardList.innerHTML = data.entries?.length
-      ? data.entries.map((entry) => `
-        <li>
-          <span class="rank-badge">${entry.rank}</span>
-          <span class="lb-name">${escapeHtml(entry.displayName)}</span>
-          <span class="level-pill">Lv.${entry.level} ${escapeHtml(entry.levelName)}</span>
-          <span class="lb-xp">${entry.xp} XP</span>
-        </li>`).join("")
-      : '<li class="plaza-empty">榜上还没有修行者，签到和完成任务即可上榜。</li>';
+    const entries = data.entries || [];
+    if (!entries.length) {
+      elements.leaderboardList.innerHTML = '<p class="plaza-empty">榜上还没有修行者，签到和完成任务即可上榜。</p>';
+      return;
+    }
+    const avatarOf = (entry) => entry.avatar
+      ? `<img src="${entry.avatar}" alt="${escapeHtml(entry.displayName)}的头像" />`
+      : escapeHtml((entry.displayName || "无").slice(0, 1));
+    const spot = (entry, position) => entry ? `
+      <div class="podium-spot ${position}">
+        <span class="podium-rank">NO.${entry.rank}</span>
+        <span class="podium-avatar">${avatarOf(entry)}</span>
+        <span class="podium-name">${escapeHtml(entry.displayName)}</span>
+        <span class="level-pill">Lv.${entry.level} ${escapeHtml(entry.levelName)}</span>
+        <span class="podium-xp">${entry.xp} XP</span>
+      </div>` : '<div class="podium-spot" aria-hidden="true"></div>';
+    const podium = `
+      <div class="podium">
+        ${spot(entries[1], "second")}
+        ${spot(entries[0], "first")}
+        ${spot(entries[2], "third")}
+      </div>`;
+    const rest = entries.slice(3, 10);
+    const restList = rest.length ? `
+      <ol class="leaderboard-rest">
+        ${rest.map((entry) => `
+          <li>
+            <span class="rank-badge">${entry.rank}</span>
+            <span class="lb-name">${escapeHtml(entry.displayName)}</span>
+            <span class="level-pill">Lv.${entry.level} ${escapeHtml(entry.levelName)}</span>
+            <span class="lb-xp">${entry.xp} XP</span>
+          </li>`).join("")}
+      </ol>` : "";
+    elements.leaderboardList.innerHTML = podium + restList;
+    refreshIcons();
     if (elements.myRankCard) {
       const mine = data.myRank;
       elements.myRankCard.hidden = !mine;
-      if (mine) {
-        elements.myRankCard.innerHTML = `<span class="level-pill">我的排名</span><strong>第 ${mine.rank} 名</strong><span class="lb-xp">Lv.${mine.level} ${escapeHtml(mine.name)} · ${mine.xp} XP</span>`;
-      }
+      if (mine) elements.myRankCard.innerHTML = `<span class="level-pill">我的排名</span><strong>第 ${mine.rank} 名</strong><span class="lb-xp">Lv.${mine.level} ${escapeHtml(mine.name)} · ${mine.xp} XP</span>`;
     }
   } catch {
-    elements.leaderboardList.innerHTML = '<li class="plaza-empty">排行榜暂时无法加载，请稍后刷新。</li>';
+    elements.leaderboardList.innerHTML = '<p class="plaza-empty">排行榜暂时无法加载，请稍后刷新。</p>';
   }
 }
 
@@ -1531,6 +1713,7 @@ function handleTaskToggle(event) {
   persist();
   render();
   if (task.completed) requestTaskXp("task");
+  renderWorkspaceStats();
   if (shouldRestoreFocus) {
     [...container.querySelectorAll(".task-check")]
       .find((checkbox) => checkbox.dataset.id === task.id)?.focus({ preventScroll: true });
@@ -1850,8 +2033,8 @@ function persistMigratedState(stored) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
 }
 
-function getLocalDate() {
-  const date = new Date();
+function getLocalDate(inputDate) {
+  const date = inputDate ? new Date(inputDate) : new Date();
   const offset = date.getTimezoneOffset() * 60 * 1000;
   return new Date(date.getTime() - offset).toISOString().slice(0, 10);
 }

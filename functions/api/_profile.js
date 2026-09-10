@@ -12,6 +12,7 @@ export function profilePayload(row, today = shanghaiToday()) {
   const level = getLevelInfo(row.xp);
   return {
     displayName: row.display_name,
+    avatar: row.avatar || null,
     xp: row.xp,
     level,
     checkin: {
