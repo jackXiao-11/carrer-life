@@ -150,6 +150,24 @@ const elements = {
   statsBars: document.querySelector("#stats-bars"),
   statsBarLabels: document.querySelector("#stats-bar-labels"),
   statsEmpty: document.querySelector("#stats-empty"),
+  verifyDialog: document.querySelector("#verify-dialog"),
+  verifySubmitPanel: document.querySelector("#verify-submit-panel"),
+  verifyQuizPanel: document.querySelector("#verify-quiz-panel"),
+  verifyResultPanel: document.querySelector("#verify-result-panel"),
+  verifyTaskTitle: document.querySelector("#verify-task-title"),
+  verifyEnglishBlock: document.querySelector("#verify-english-block"),
+  verifyOtherBlock: document.querySelector("#verify-other-block"),
+  verifyWordsInput: document.querySelector("#verify-words-input"),
+  verifyNotesInput: document.querySelector("#verify-notes-input"),
+  verifyError: document.querySelector("#verify-error"),
+  quizError: document.querySelector("#quiz-error"),
+  quizStatus: document.querySelector("#verify-quiz-status"),
+  quizBody: document.querySelector("#verify-quiz-body"),
+  quizAnswerButton: document.querySelector("#quiz-answer-button"),
+  verifyResultTitle: document.querySelector("#verify-result-title"),
+  verifyResultText: document.querySelector("#verify-result-text"),
+  wordList: document.querySelector("#word-list"),
+  wordCount: document.querySelector("#word-count"),
 };
 
 initialize();
@@ -253,6 +271,14 @@ function bindEvents() {
   elements.leaderboardRefresh?.addEventListener("click", loadLeaderboard);
   elements.avatarInput?.addEventListener("change", handleAvatarSelect);
   elements.avatarRemove?.addEventListener("click", removeAvatar);
+  document.querySelector("#close-verify-button")?.addEventListener("click", closeVerifyDialog);
+  document.querySelector("#verify-cancel-button")?.addEventListener("click", closeVerifyDialog);
+  document.querySelector("#verify-submit-button")?.addEventListener("click", submitVerification);
+  document.querySelector("#verify-result-close")?.addEventListener("click", () => elements.verifyDialog?.close());
+  elements.quizAnswerButton?.addEventListener("click", answerQuiz);
+  elements.quizBody?.addEventListener("change", () => {
+    if (elements.quizAnswerButton) elements.quizAnswerButton.disabled = !elements.quizBody.querySelector("input[name='quiz-option']:checked");
+  });
   elements.chatModel.addEventListener("change", () =>
     selectModel(elements.chatModel.value),
   );
@@ -529,7 +555,21 @@ function mergeAccountState(local, remote) {
     }
     return result;
   };
-  return { tasks: mergeList(local?.tasks, remote?.tasks), records: mergeList(local?.records, remote?.records) };
+  const mergeWords = (localList, remoteList) => {
+    const result = Array.isArray(localList) ? localList.map((item) => ({ ...item })) : [];
+    const seen = new Set(result.map((item) => `${item.word}::${item.taskId || ""}`));
+    for (const item of Array.isArray(remoteList) ? remoteList : []) {
+      if (!item || typeof item !== "object" || !item.word) continue;
+      const key = `${item.word}::${item.taskId || ""}`;
+      if (!seen.has(key)) { result.push({ ...item }); seen.add(key); }
+    }
+    return result;
+  };
+  return {
+    tasks: mergeList(local?.tasks, remote?.tasks),
+    records: mergeList(local?.records, remote?.records),
+    words: mergeWords(local?.words, remote?.words),
+  };
 }
 
 function applyProfileUi() {
@@ -631,6 +671,227 @@ async function requestTaskXp(type = "task") {
       if (data.leveledUp) showToast(`恭喜突破！晋升【${data.profile.level.name}】`);
     }
   } catch { /* XP sync silently retries on next action */ }
+}
+
+let verifyTaskId = null;
+let quizData = null;
+
+function closeVerifyDialog() {
+  if (elements.verifyDialog?.open) elements.verifyDialog.close();
+}
+
+function openVerifyDialog(taskId) {
+  const task = state.tasks.find((item) => item.id === taskId);
+  if (!task || !task.completed || task.verified) return;
+  verifyTaskId = taskId;
+  quizData = null;
+  elements.verifyTaskTitle.textContent = task.title;
+  const isEnglish = task.category === "english";
+  elements.verifyEnglishBlock.hidden = !isEnglish;
+  elements.verifyOtherBlock.hidden = isEnglish;
+  elements.verifySubmitPanel.hidden = false;
+  elements.verifyQuizPanel.hidden = true;
+  elements.verifyResultPanel.hidden = true;
+  elements.verifyError.textContent = "";
+  elements.quizError.textContent = "";
+  elements.verifyWordsInput.value = (task.submissionWords || []).join("\n");
+  elements.verifyNotesInput.value = task.submission || "";
+  if (!elements.verifyDialog.open) elements.verifyDialog.showModal();
+  (isEnglish ? elements.verifyWordsInput : elements.verifyNotesInput).focus();
+}
+
+function submitVerification() {
+  const task = state.tasks.find((item) => item.id === verifyTaskId);
+  if (!task) return;
+  if (task.category === "english") submitEnglishVerification(task);
+  else submitOtherVerification(task);
+}
+
+function submitOtherVerification(task) {
+  const text = elements.verifyNotesInput.value.trim();
+  if (text.length < 5) {
+    elements.verifyError.textContent = "请填写至少 5 个字的验收说明。";
+    return;
+  }
+  task.submission = text;
+  task.verified = true;
+  persist();
+  render();
+  finishVerification("验收通过！", accountUser ? "经验 +10 已到账，继续保持。" : "登录后可以获得经验奖励。");
+}
+
+async function submitEnglishVerification(task) {
+  const words = [...new Set(
+    elements.verifyWordsInput.value
+      .split(/[\n,，;；、\s]+/)
+      .map((word) => word.trim().toLowerCase())
+      .filter(Boolean),
+  )];
+  if (words.length < 3) {
+    elements.verifyError.textContent = "至少填入 3 个单词，例如背 10 个就填 10 个。";
+    return;
+  }
+  if (words.length > 60) {
+    elements.verifyError.textContent = "一次最多提交 60 个单词。";
+    return;
+  }
+  elements.verifyError.textContent = "";
+  const button = document.querySelector("#verify-submit-button");
+  const buttonLabel = button.querySelector("span");
+  button.disabled = true;
+  buttonLabel.textContent = "AI 正在出题…";
+  try {
+    state.words = (state.words || []).filter((word) => word.taskId !== task.id);
+    words.forEach((word) => {
+      state.words.unshift({ id: createId(), word, meaning: "", date: today, taskId: task.id });
+    });
+    task.submissionWords = words;
+    persist();
+    renderWords();
+
+    const quiz = await fetchWordQuiz(words);
+    const meaningMap = new Map((quiz.meanings || []).map((item) => [String(item.word).toLowerCase(), item.meaning]));
+    state.words.forEach((entry) => {
+      if (entry.taskId === task.id && !entry.meaning && meaningMap.has(entry.word)) entry.meaning = meaningMap.get(entry.word);
+    });
+    persist();
+    renderWords();
+
+    quizData = { questions: quiz.quiz, index: 0, answers: [] };
+    elements.verifySubmitPanel.hidden = true;
+    elements.verifyQuizPanel.hidden = false;
+    renderQuizQuestion();
+  } catch (error) {
+    elements.verifyError.textContent = error.message || "AI 暂时不可用。单词已存入单词本，稍后重新点「验收」即可。";
+  } finally {
+    button.disabled = false;
+    buttonLabel.textContent = "提交并验收";
+  }
+}
+
+async function fetchWordQuiz(words) {
+  const prompt = `你是英语老师。用户刚背了这些单词：${words.join("、")}。请只返回严格 JSON，不要 markdown、不要解释，格式：{"meanings":[{"word":"单词","meaning":"中文释义"}]（列表里每个单词都要有），"quiz":[{"word":"随机抽的单词","answer":"该单词正确中文释义","options":["4个中文选项，包含answer并打乱"]}]}。quiz 固定抽 3 个不同单词。`;
+  const response = await fetch("/api/chat", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model: "deepseek", messages: [{ role: "user", content: prompt }] }),
+  });
+  if (!response.ok) throw new Error("AI 服务暂时不可用，请稍后重试。");
+  if (!response.body) throw new Error("AI 没有返回内容，请重试。");
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let text = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    text += decoder.decode(value, { stream: true });
+  }
+  const cleaned = text.replace(/<\/?think>/gi, "").replace(/```json|```/g, "").trim();
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start < 0 || end <= start) throw new Error("AI 出题格式异常，请重试。");
+  let parsed;
+  try {
+    parsed = JSON.parse(cleaned.slice(start, end + 1));
+  } catch {
+    throw new Error("AI 出题格式异常，请重试。");
+  }
+  const questions = (parsed.quiz || []).filter((item) => item.word && item.answer).slice(0, 3);
+  if (!questions.length) throw new Error("AI 没有出题成功，请重试。");
+  questions.forEach((item) => {
+    if (!Array.isArray(item.options) || !item.options.includes(item.answer)) {
+      item.options = [item.answer, "名词短语", "动词原形", "形容词"];
+    }
+    item.options = [...new Set(item.options)].slice(0, 4);
+  });
+  return { meanings: parsed.meanings || [], quiz: questions };
+}
+
+function renderQuizQuestion() {
+  const question = quizData.questions[quizData.index];
+  elements.quizStatus.textContent = `第 ${quizData.index + 1} / ${quizData.questions.length} 题：选出这个单词的中文释义`;
+  elements.quizBody.innerHTML = `
+    <div class="quiz-question">
+      <p class="quiz-word">${escapeHtml(question.word)}</p>
+      <div class="quiz-options">
+        ${question.options.map((option) => `
+          <label class="quiz-option">
+            <input type="radio" name="quiz-option" value="${escapeHtml(option)}" />
+            <span>${escapeHtml(option)}</span>
+          </label>`).join("")}
+      </div>
+    </div>`;
+  elements.quizAnswerButton.disabled = true;
+  elements.quizError.textContent = "";
+}
+
+function answerQuiz() {
+  const selected = elements.quizBody.querySelector("input[name='quiz-option']:checked");
+  if (!selected || !quizData) return;
+  const question = quizData.questions[quizData.index];
+  const correct = selected.value === question.answer;
+  elements.quizBody.querySelectorAll(".quiz-option").forEach((label) => {
+    const input = label.querySelector("input");
+    input.disabled = true;
+    if (input.value === question.answer) label.classList.add("correct");
+    else if (input.checked) label.classList.add("wrong");
+  });
+  elements.quizAnswerButton.disabled = true;
+  quizData.answers.push(correct);
+  window.setTimeout(() => {
+    if (quizData.index < quizData.questions.length - 1) {
+      quizData.index += 1;
+      renderQuizQuestion();
+    } else {
+      finishQuiz();
+    }
+  }, correct ? 750 : 1700);
+}
+
+function finishQuiz() {
+  const allCorrect = quizData.answers.length === quizData.questions.length && quizData.answers.every(Boolean);
+  const task = state.tasks.find((item) => item.id === verifyTaskId);
+  if (allCorrect && task) {
+    task.verified = true;
+    persist();
+    render();
+    finishVerification("验收通过！", accountUser ? "3 题全对，经验 +10 已到账！" : "3 题全对！登录后可以获得经验。");
+  } else {
+    elements.verifyQuizPanel.hidden = true;
+    elements.verifyResultPanel.hidden = false;
+    document.querySelector("#verify-result-icon").innerHTML = '<i data-lucide="rotate-ccw"></i>';
+    document.querySelector("#verify-result-title").textContent = "差一点点！";
+    document.querySelector("#verify-result-text").textContent = "有单词答错了，单词已保存在单词本里。关闭后点击任务上的「验收」可以重新挑战。";
+    document.querySelector("#verify-result-close").textContent = "再试一次";
+    refreshIcons();
+  }
+}
+
+async function finishVerification(title, text) {
+  elements.verifySubmitPanel.hidden = true;
+  elements.verifyQuizPanel.hidden = true;
+  elements.verifyResultPanel.hidden = false;
+  document.querySelector("#verify-result-icon").innerHTML = '<i data-lucide="party-popper"></i>';
+  document.querySelector("#verify-result-title").textContent = title;
+  document.querySelector("#verify-result-text").textContent = text;
+  document.querySelector("#verify-result-close").textContent = "太好了";
+  refreshIcons();
+  if (accountUser) await requestTaskXp("task");
+}
+
+function renderWords() {
+  if (!elements.wordList) return;
+  const words = state.words || [];
+  elements.wordCount.textContent = `${words.length} 词`;
+  elements.wordList.innerHTML = words.length
+    ? words.slice(0, 60).map((entry) => `
+      <div class="word-item">
+        <strong>${escapeHtml(entry.word)}</strong>
+        <span>${escapeHtml(entry.meaning || "释义待补充")}</span>
+        <time>${escapeHtml(entry.date || "")}</time>
+      </div>`).join("")
+    : '<p class="word-empty">还没有单词。提交英语任务验收时填写的单词会自动记录在这里。</p>';
 }
 
 async function handleCheckin() {
@@ -1662,6 +1923,7 @@ function openTaskDialog(taskId = "") {
     elements.taskForm.elements.date.value = task.date;
     elements.taskForm.elements.minutes.value = task.minutes;
     elements.taskForm.elements.notes.value = task.notes;
+    elements.taskForm.elements.progress.value = String(task.progress ?? 0);
   }
 
   elements.taskDialog.showModal();
@@ -1682,17 +1944,24 @@ function saveTask(event) {
     date: formData.get("date"),
     minutes: Number(formData.get("minutes")),
     notes: formData.get("notes").trim(),
+    progress: Number(formData.get("progress") || 0),
   };
 
   if (id) {
     const task = state.tasks.find((item) => item.id === id);
     Object.assign(task, taskData);
+    if (task.progress < 100) {
+      task.completed = false;
+      task.verified = false;
+    }
     showToast("任务已更新");
   } else {
     state.tasks.push({
       id: createId(),
       ...taskData,
       completed: false,
+      verified: false,
+      progress: Number(formData.get("progress") || 0),
       createdAt: new Date().toISOString(),
     });
     showToast("任务已添加");
@@ -1708,23 +1977,30 @@ function handleTaskToggle(event) {
   const task = state.tasks.find((item) => item.id === event.target.dataset.id);
   if (!task) return;
   task.completed = event.target.checked;
+  if (task.completed) task.progress = 100;
+  else task.verified = false;
   const container = event.target.closest(".task-list, .plan-list");
   const shouldRestoreFocus = event.target === document.activeElement;
   persist();
   render();
-  if (task.completed) requestTaskXp("task");
   renderWorkspaceStats();
   if (shouldRestoreFocus) {
     [...container.querySelectorAll(".task-check")]
       .find((checkbox) => checkbox.dataset.id === task.id)?.focus({ preventScroll: true });
   }
-  showToast(task.completed ? "完成一小步" : "任务已恢复");
+  if (task.completed) {
+    showToast("已标记完成，提交验收后获得经验");
+    openVerifyDialog(task.id);
+  } else {
+    showToast("任务已恢复进行中");
+  }
 }
 
 function handleTaskAction(event) {
   const button = event.target.closest("[data-action]");
   if (!button) return;
   const { action, id } = button.dataset;
+  if (action === "verify") openVerifyDialog(id);
   if (action === "edit") openTaskDialog(id);
   if (action === "delete" && window.confirm("确定删除这个任务吗？")) {
     state.tasks = state.tasks.filter((item) => item.id !== id);
@@ -1767,6 +2043,7 @@ function render() {
   renderTodayTasks();
   renderPlans();
   renderRecords();
+  renderWords();
   refreshIcons();
 }
 
@@ -1935,12 +2212,15 @@ function taskTemplate(task) {
       <div class="task-copy">
         <strong>${escapeHtml(task.title)}</strong>
         ${task.notes ? `<p>${escapeHtml(task.notes)}</p>` : ""}
+        ${taskProgressTemplate(task)}
       </div>
       <div class="task-meta">
         <span class="category-tag ${task.category}">${categoryLabels[task.category]}</span>
         <span>${task.minutes} 分钟</span>
+        ${taskVerifyBadgeTemplate(task)}
       </div>
       <div class="task-actions">
+        ${task.completed && !task.verified ? `<button class="verify-button" type="button" data-action="verify" data-id="${task.id}"><i data-lucide="badge-check"></i>验收</button>` : ""}
         <button class="icon-button" type="button" data-action="edit" data-id="${task.id}" aria-label="编辑任务" title="编辑任务">
           <i data-lucide="pencil"></i>
           <span class="icon-fallback">编辑</span>
@@ -1961,7 +2241,9 @@ function planTemplate(task) {
         <time datetime="${task.date}">${formatDate(task.date)}</time>
         <strong>${escapeHtml(task.title)}</strong>
         <p>${escapeHtml(task.notes || `${task.minutes} 分钟学习任务`)}</p>
+        ${taskProgressTemplate(task)}
       </div>
+      ${taskVerifyBadgeTemplate(task)}
       <button class="icon-button" type="button" data-action="edit" data-id="${task.id}" aria-label="编辑任务" title="编辑任务">
         <i data-lucide="pencil"></i>
         <span class="icon-fallback">编辑</span>
@@ -1972,6 +2254,20 @@ function planTemplate(task) {
 function taskCheckboxTemplate(task) {
   return `<label class="task-checkbox"><input class="task-check" type="checkbox" data-id="${task.id}"
     aria-label="${escapeHtml(task.title)}，标记为${task.completed ? "未完成" : "完成"}" ${task.completed ? "checked" : ""}><span class="check-visual" aria-hidden="true"></span></label>`;
+}
+
+function taskProgressTemplate(task) {
+  if (task.completed) return "";
+  const progress = Number(task.progress) || 0;
+  if (!progress) return "";
+  return `<div class="task-progress"><div class="task-progress-bar"><div class="task-progress-fill" style="width:${progress}%"></div></div><span class="task-progress-text">${progress}%</span></div>`;
+}
+
+function taskVerifyBadgeTemplate(task) {
+  if (!task.completed) return "";
+  return task.verified
+    ? '<span class="verify-badge passed">✓ 已验收</span>'
+    : '<span class="verify-badge pending">待验收</span>';
 }
 
 function recordTemplate(record) {
@@ -2016,6 +2312,7 @@ function loadState() {
     const legacyData = localStorage.getItem(LEGACY_STORAGE_KEY);
     const stored = JSON.parse(currentData || legacyData);
     if (stored?.tasks && stored?.records) {
+      stored.words = Array.isArray(stored.words) ? stored.words : [];
       if (!currentData && legacyData) persistMigratedState(stored);
       return stored;
     }
@@ -2026,6 +2323,7 @@ function loadState() {
   return {
     tasks: [],
     records: [],
+    words: [],
   };
 }
 

@@ -32,6 +32,9 @@ export async function onRequestPut(context) {
   if (!Array.isArray(data.tasks) || !Array.isArray(data.records) || data.tasks.length > 2000 || data.records.length > 2000) {
     return json({ error: "任务或记录数量超出限制。" }, 400);
   }
+  if (data.words !== undefined && (!Array.isArray(data.words) || data.words.length > 2000)) {
+    return json({ error: "单词数量超出限制。" }, 400);
+  }
   const serialized = JSON.stringify(data);
   if (new TextEncoder().encode(serialized).byteLength > MAX_JSON_BYTES) return json({ error: "数据内容过大。" }, 413);
   const updatedAt = Date.now();

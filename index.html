@@ -141,6 +141,45 @@
       .leaderboard-rest .lb-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
       .leaderboard-rest .lb-xp{font-size:11px;color:var(--text-muted);font-variant-numeric:tabular-nums}
       @media(max-width:600px){.stats-grid{grid-template-columns:1fr;justify-items:center}.podium{grid-template-columns:1fr 1.15fr 1fr;gap:6px}.podium-spot.first .podium-avatar{width:56px;height:56px}}
+      .task-progress{grid-column:1 / -1;display:grid;gap:4px}
+      .task-progress-bar{height:6px;border-radius:999px;background:var(--border,#e2e8f0);overflow:hidden}
+      .task-progress-fill{height:100%;border-radius:inherit;background:linear-gradient(90deg,#34d399,#3b82f6);transition:width .5s cubic-bezier(.22,1,.36,1)}
+      .task-progress-text{font-size:10px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+      .verify-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;font-size:10px;font-weight:700;white-space:nowrap}
+      .verify-badge.pending{background:rgba(245,158,11,.15);color:#b45309}
+      .verify-badge.passed{background:rgba(16,185,129,.15);color:#047857}
+      .verify-button{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border:1px solid rgba(245,158,11,.5);border-radius:8px;background:rgba(245,158,11,.08);color:#b45309;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
+      .verify-button:hover{background:rgba(245,158,11,.16)}
+      .verify-dialog{width:min(480px,calc(100% - 32px))}
+      .verify-dialog > div{display:grid;gap:14px;padding:26px}
+      .verify-task-title{margin:0;padding:10px 12px;border-radius:10px;background:var(--brand-soft,#eef4f6);font-size:13px;font-weight:600}
+      .verify-dialog label{display:grid;gap:6px;font-size:13px;font-weight:600}
+      .verify-dialog textarea{min-height:88px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font:inherit;resize:vertical}
+      .verify-hint,.wordbook-hint{margin:0;color:var(--text-muted);font-size:12px;line-height:1.6}
+      .verify-error{min-height:18px;margin:0;color:var(--danger,#b42335);font-size:12px}
+      .verify-quiz-status{margin:0;color:var(--text-secondary);font-size:13px}
+      .quiz-question{display:grid;gap:10px;padding:14px;border:1px solid var(--border);border-radius:12px;background:#fff}
+      .quiz-word{margin:0;font-size:22px;font-weight:800;color:var(--brand,#1a647b)}
+      .quiz-options{display:grid;gap:8px}
+      .quiz-option{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:13px;cursor:pointer;transition:border-color .15s ease,background .15s ease}
+      .quiz-option:hover{border-color:var(--brand,#1a647b);background:var(--brand-soft,#eef4f6)}
+      .quiz-option input{accent-color:#1a647b}
+      .quiz-option.correct{border-color:#10b981;background:rgba(16,185,129,.12)}
+      .quiz-option.wrong{border-color:#ef4444;background:rgba(239,68,68,.1)}
+      .verify-result-icon{display:grid;place-items:center;width:56px;height:56px;border-radius:50%;background:rgba(16,185,129,.14);color:#059669}
+      .verify-result-icon svg{width:28px;height:28px}
+      #verify-result-panel{justify-items:center;text-align:center}
+      #verify-result-panel h2{margin:0}
+      #verify-result-panel p{margin:0;color:var(--text-secondary);font-size:14px;line-height:1.7}
+      .wordbook-card{padding:22px;border:1px solid var(--border);border-radius:18px;background:var(--surface,#fff)}
+      .wordbook-card .lane-heading{margin-bottom:8px}
+      .word-count{margin-left:auto;font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+      .word-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
+      .word-item{display:grid;gap:3px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:#fff}
+      .word-item strong{font-size:14px;color:var(--brand,#1a647b)}
+      .word-item span{font-size:12px;color:var(--text-secondary);line-height:1.4}
+      .word-item time{font-size:10px;color:var(--text-muted)}
+      .word-empty{grid-column:1 / -1;margin:0;color:var(--text-muted);font-size:13px}
     </style>
   </head>
   <body>
@@ -432,6 +471,19 @@
                 </div>
               </div>
               <div class="plan-list" id="english-plan-list"></div>
+            </section>
+
+            <section class="wordbook-card" aria-labelledby="wordbook-title">
+              <div class="lane-heading">
+                <span class="lane-icon"><i data-lucide="book-open"></i></span>
+                <div>
+                  <p>Wordbook</p>
+                  <h3 id="wordbook-title">英语单词本</h3>
+                </div>
+                <span class="word-count" id="word-count">0 词</span>
+              </div>
+              <p class="wordbook-hint">提交英语任务验收时填写的单词会自动保存在这里。</p>
+              <div class="word-list" id="word-list"></div>
             </section>
           </div>
         </section>
@@ -808,6 +860,16 @@
           />
         </label>
         <label>
+          <span>当前进度</span>
+          <select name="progress" id="task-progress-select">
+            <option value="0">0% · 未开始</option>
+            <option value="25">25% · 刚起步</option>
+            <option value="50">50% · 进行中</option>
+            <option value="75">75% · 快完成</option>
+            <option value="100">100% · 已做完</option>
+          </select>
+        </label>
+        <label>
           <span>备注</span>
           <textarea
             name="notes"
@@ -849,11 +911,68 @@
       </div>
     </dialog>
 
+    <dialog class="task-dialog verify-dialog" id="verify-dialog" aria-labelledby="verify-dialog-title">
+      <div id="verify-submit-panel">
+        <div class="dialog-heading">
+          <div>
+            <p class="section-kicker">验收任务</p>
+            <h2 id="verify-dialog-title">提交你的完成成果</h2>
+          </div>
+          <button class="icon-button" id="close-verify-button" type="button" aria-label="关闭验收窗口" title="关闭">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <p class="verify-task-title" id="verify-task-title"></p>
+        <div id="verify-english-block">
+          <label>
+            <span>填入你背的单词（每行一个，至少 3 个）</span>
+            <textarea id="verify-words-input" rows="6" maxlength="600" placeholder="apple&#10;banana&#10;dragon"></textarea>
+          </label>
+          <p class="verify-hint">提交后 AI 会随机抽 3 个单词出释义题，全部答对才算验收通过并获得经验。</p>
+        </div>
+        <div id="verify-other-block" hidden>
+          <label>
+            <span>验收说明（做了什么、结果如何）</span>
+            <textarea id="verify-notes-input" rows="4" maxlength="500" placeholder="例如：完成报告初稿并发给了导师"></textarea>
+          </label>
+        </div>
+        <p class="verify-error" id="verify-error" role="alert"></p>
+        <div class="dialog-actions">
+          <button class="secondary-button" id="verify-cancel-button" type="button">稍后再说</button>
+          <button class="primary-button" id="verify-submit-button" type="button"><i data-lucide="badge-check"></i><span>提交并验收</span></button>
+        </div>
+      </div>
+
+      <div id="verify-quiz-panel" hidden>
+        <div class="dialog-heading">
+          <div>
+            <p class="section-kicker">AI 抽查</p>
+            <h2>单词验收中</h2>
+          </div>
+        </div>
+        <p class="verify-quiz-status" id="verify-quiz-status">正在生成题目…</p>
+        <div id="verify-quiz-body"></div>
+        <p class="verify-error" id="quiz-error" role="alert"></p>
+        <div class="dialog-actions">
+          <button class="primary-button" id="quiz-answer-button" type="button" disabled>提交答案</button>
+        </div>
+      </div>
+
+      <div id="verify-result-panel" hidden>
+        <div class="verify-result-icon" id="verify-result-icon"><i data-lucide="party-popper"></i></div>
+        <h2 id="verify-result-title">验收通过</h2>
+        <p id="verify-result-text"></p>
+        <div class="dialog-actions">
+          <button class="primary-button" id="verify-result-close" type="button">太好了</button>
+        </div>
+      </div>
+    </dialog>
+
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script src="assets/vendor/lucide.min.js"></script>
     <script src="assets/vendor/marked.umd.js"></script>
     <script src="assets/vendor/purify.min.js"></script>
-    <script src="script.js?v=20260910-avatar"></script>
+    <script src="script.js?v=20260910-verify"></script>
   </body>
 </html>
