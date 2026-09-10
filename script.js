@@ -166,23 +166,6 @@ function bindEvents() {
   document.querySelector("#close-account-button")?.addEventListener("click", closeAccountDialog);
   document.querySelector("#account-close")?.addEventListener("click", closeAccountDialog);
   document.querySelector("#account-logout")?.addEventListener("click", logoutAccount);
-  document.querySelectorAll(".social-login a").forEach((link) => {
-    link.addEventListener("click", async (event) => {
-      event.preventDefault();
-      if (elements.accountError) elements.accountError.textContent = "正在连接第三方登录…";
-      try {
-        const response = await fetch(link.href, { credentials: "same-origin", headers: { Accept: "application/json" } });
-        if (response.status === 501) {
-          const data = await response.json().catch(() => ({}));
-          if (elements.accountError) elements.accountError.textContent = data.error || "第三方登录尚未配置，请先使用邮箱注册。";
-          return;
-        }
-      } catch {
-        // A configured OAuth provider may redirect outside the site; let navigation handle it.
-      }
-      window.location.assign(link.href);
-    });
-  });
   elements.chatModel.addEventListener("change", () =>
     selectModel(elements.chatModel.value),
   );
@@ -345,6 +328,12 @@ function updateAccountUi() {
   if (elements.accountForm) elements.accountForm.hidden = loggedIn;
   if (elements.accountLoggedIn) elements.accountLoggedIn.hidden = !loggedIn;
   if (elements.accountUserEmail && loggedIn) elements.accountUserEmail.textContent = accountUser.email || "已登录";
+  if (elements.accountDialogTitle) {
+    elements.accountDialogTitle.textContent = loggedIn ? "我的账户" : (accountMode === "register" ? "创建 Career Life 账号" : "登录 Career Life");
+  }
+  if (elements.accountDialogSubtitle) {
+    elements.accountDialogSubtitle.textContent = loggedIn ? "账号已连接，数据自动云端同步" : (accountMode === "register" ? "注册后可在不同设备继续使用你的数据" : "登录后可在不同设备继续使用你的数据");
+  }
 }
 
 function setAccountStatus(message) {
