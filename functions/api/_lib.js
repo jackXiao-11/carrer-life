@@ -107,7 +107,8 @@ export function base64ToBytes(value) {
 export async function hashPassword(password, saltBytes = crypto.getRandomValues(new Uint8Array(16))) {
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]);
   const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt: saltBytes, iterations: 120000, hash: "SHA-256" },
+    // Cloudflare Workers caps PBKDF2 at 100,000 iterations.
+    { name: "PBKDF2", salt: saltBytes, iterations: 100000, hash: "SHA-256" },
     key,
     256,
   );
