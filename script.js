@@ -12,6 +12,8 @@ const viewTitles = {
   dashboard: "专注今天，从容前行。",
   plans: "让每一天，都有所积累。",
   records: "记录工作，也记录成长。",
+  workspace: "修行之路，始于足下。",
+  plaza: "万千修行者，同登此峰。",
 };
 
 const modelNotes = {
@@ -35,6 +37,38 @@ let accountSyncTimer = null;
 let accountSyncInFlight = false;
 let accountSyncQueued = false;
 let accountMode = "login";
+let profileCache = null;
+let friendsCache = { friends: [], incoming: [], outgoing: [] };
+
+const CULTIVATION_LEVELS = [
+  { level: 1, name: "凡人", xp: 0 },
+  { level: 2, name: "炼气期", xp: 100 },
+  { level: 3, name: "筑基期", xp: 250 },
+  { level: 4, name: "金丹期", xp: 450 },
+  { level: 5, name: "元婴期", xp: 700 },
+  { level: 6, name: "化神期", xp: 1000 },
+  { level: 7, name: "炼虚期", xp: 1400 },
+  { level: 8, name: "合体期", xp: 1900 },
+  { level: 9, name: "大乘期", xp: 2500 },
+  { level: 10, name: "渡劫·飞升", xp: 3300 },
+];
+
+function getCultivationLevel(xp) {
+  const safeXp = Math.max(0, Number(xp) || 0);
+  let current = CULTIVATION_LEVELS[0];
+  for (const entry of CULTIVATION_LEVELS) if (safeXp >= entry.xp) current = entry;
+  const next = CULTIVATION_LEVELS[current.level] || null;
+  const span = next ? next.xp - current.xp : 1;
+  const gained = next ? safeXp - current.xp : 1;
+  return {
+    level: current.level,
+    name: current.name,
+    nextName: next ? next.name : null,
+    nextXp: next ? next.xp : null,
+    remainingXp: next ? Math.max(0, next.xp - safeXp) : 0,
+    progress: next ? Math.min(1, gained / span) : 1,
+  };
+}
 
 const elements = {
   todayLabel: document.querySelector("#today-label"),
@@ -74,6 +108,35 @@ const elements = {
   accountLoggedIn: document.querySelector("#account-logged-in"),
   accountUserEmail: document.querySelector("#account-user-email"),
   accountLoggedInStatus: document.querySelector("#account-logged-in-status"),
+  workspaceLogin: document.querySelector("#workspace-login"),
+  workspaceLoginButton: document.querySelector("#workspace-login-button"),
+  workspaceGrid: document.querySelector("#workspace-grid"),
+  sidebarXp: document.querySelector("#sidebar-xp"),
+  sidebarLevelLabel: document.querySelector("#sidebar-level-label"),
+  sidebarLevelPill: document.querySelector("#sidebar-level-pill"),
+  sidebarXpText: document.querySelector("#sidebar-xp-text"),
+  sidebarXpFill: document.querySelector("#sidebar-xp-fill"),
+  wsLevelPill: document.querySelector("#ws-level-pill"),
+  wsXpFill: document.querySelector("#ws-xp-fill"),
+  wsXpText: document.querySelector("#ws-xp-text"),
+  wsTaskXpNote: document.querySelector("#ws-task-xp-note"),
+  checkinButton: document.querySelector("#checkin-button"),
+  checkinStreak: document.querySelector("#checkin-streak"),
+  nameForm: document.querySelector("#name-form"),
+  displayNameInput: document.querySelector("#display-name-input"),
+  friendForm: document.querySelector("#friend-form"),
+  friendEmail: document.querySelector("#friend-email"),
+  incomingBlock: document.querySelector("#incoming-block"),
+  incomingList: document.querySelector("#incoming-list"),
+  friendsList: document.querySelector("#friends-list"),
+  collabForm: document.querySelector("#collab-form"),
+  collabTitleInput: document.querySelector("#collab-title-input"),
+  collabFriendSelect: document.querySelector("#collab-friend-select"),
+  collabCategory: document.querySelector("#collab-category"),
+  collabList: document.querySelector("#collab-list"),
+  leaderboardList: document.querySelector("#leaderboard-list"),
+  leaderboardRefresh: document.querySelector("#leaderboard-refresh"),
+  myRankCard: document.querySelector("#my-rank-card"),
 };
 
 initialize();
@@ -166,6 +229,15 @@ function bindEvents() {
   document.querySelector("#close-account-button")?.addEventListener("click", closeAccountDialog);
   document.querySelector("#account-close")?.addEventListener("click", closeAccountDialog);
   document.querySelector("#account-logout")?.addEventListener("click", logoutAccount);
+  elements.workspaceLoginButton?.addEventListener("click", openAccountDialog);
+  elements.checkinButton?.addEventListener("click", handleCheckin);
+  elements.nameForm?.addEventListener("submit", saveDisplayName);
+  elements.friendForm?.addEventListener("submit", sendFriendRequest);
+  elements.incomingList?.addEventListener("click", handleFriendRespond);
+  elements.collabForm?.addEventListener("submit", createCollabTask);
+  elements.collabList?.addEventListener("change", handleCollabToggle);
+  elements.collabList?.addEventListener("click", handleCollabDelete);
+  elements.leaderboardRefresh?.addEventListener("click", loadLeaderboard);
   elements.chatModel.addEventListener("change", () =>
     selectModel(elements.chatModel.value),
   );
@@ -267,13 +339,19 @@ function switchView(viewName) {
     dashboard: "今日概览",
     plans: "学习计划",
     records: "工作记录",
+    workspace: "个人工作空间",
+    plaza: "广场",
   }[viewName];
   document.querySelector("#view-subtitle").textContent = {
     dashboard: "把时间留给重要的事。",
     plans: "软件能力与英语，一起向前。",
     records: "每一个解决的问题，都值得留下。",
+    workspace: "签到、修行、结伴同行。",
+    plaza: "看看谁在榜上风云。",
   }[viewName];
-  elements.addTaskButton.hidden = viewName === "records";
+  elements.addTaskButton.hidden = viewName === "records" || viewName === "workspace" || viewName === "plaza";
+  if (viewName === "workspace") loadWorkspace();
+  if (viewName === "plaza") loadLeaderboard();
   if (window.location.hash !== `#${viewName}`) window.location.hash = viewName;
 }
 
@@ -288,6 +366,7 @@ async function initializeAccount() {
       accountUser = data.user;
       updateAccountUi();
       await syncFromCloud();
+      await loadProfile();
     }
   } catch {
     // Offline and unconfigured deployments continue with local-only storage.
@@ -359,6 +438,7 @@ async function submitAccountForm(event) {
     updateAccountUi();
     setAccountStatus("正在同步数据…");
     await syncFromCloud();
+    await loadProfile();
     closeAccountDialog();
     showToast("账户已连接，数据已同步");
   } catch (error) {
@@ -372,6 +452,7 @@ async function logoutAccount() {
   try { await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }); } catch { /* local mode remains available */ }
   accountUser = null;
   window.clearTimeout(accountSyncTimer);
+  resetProfileUi();
   updateAccountUi();
   closeAccountDialog();
   showToast("已退出，当前继续使用本地数据");
@@ -434,6 +515,326 @@ function mergeAccountState(local, remote) {
     return result;
   };
   return { tasks: mergeList(local?.tasks, remote?.tasks), records: mergeList(local?.records, remote?.records) };
+}
+
+function applyProfileUi() {
+  const loggedIn = !!accountUser;
+  if (elements.sidebarXp) elements.sidebarXp.hidden = !loggedIn;
+  if (elements.workspaceLogin) elements.workspaceLogin.hidden = loggedIn;
+  if (elements.workspaceGrid) elements.workspaceGrid.hidden = !loggedIn;
+  if (!loggedIn) return;
+  const info = profileCache ? profileCache.level : getCultivationLevel(0);
+  const xp = profileCache?.xp || 0;
+  if (elements.sidebarLevelLabel) elements.sidebarLevelLabel.textContent = accountUser ? `Lv.${info.level} ${info.name}` : "点击进入修行";
+  if (elements.sidebarLevelPill) elements.sidebarLevelPill.textContent = info.name;
+  if (elements.sidebarXpText) elements.sidebarXpText.textContent = `${xp} XP`;
+  if (elements.sidebarXpFill) elements.sidebarXpFill.style.width = `${Math.round(info.progress * 100)}%`;
+  if (elements.wsLevelPill) elements.wsLevelPill.textContent = `Lv.${info.level} ${info.name}`;
+  if (elements.wsXpFill) elements.wsXpFill.style.width = `${Math.round(info.progress * 100)}%`;
+  if (elements.wsXpText) {
+    elements.wsXpText.textContent = info.nextName
+      ? `${xp} XP · 距离【${info.nextName}】还差 ${info.remainingXp} XP`
+      : `${xp} XP · 已至大道巅峰`;
+  }
+  if (elements.checkinButton) {
+    const checked = !!profileCache?.checkin?.checkedInToday;
+    elements.checkinButton.disabled = checked;
+    elements.checkinButton.querySelector("span").textContent = checked ? "今日已签到" : "每日签到 +10";
+  }
+  if (elements.checkinStreak) elements.checkinStreak.textContent = `连续签到 ${profileCache?.checkin?.streak || 0} 天`;
+  if (elements.wsTaskXpNote) {
+    const used = profileCache?.taskXp?.usedToday || 0;
+    const limit = profileCache?.taskXp?.limit || 5;
+    elements.wsTaskXpNote.textContent = `今日任务经验 ${used}/${limit} · 每完成一个任务 +10 XP`;
+  }
+  if (elements.displayNameInput && document.activeElement !== elements.displayNameInput) {
+    elements.displayNameInput.value = profileCache?.displayName || "";
+  }
+}
+
+function resetProfileUi() {
+  profileCache = null;
+  friendsCache = { friends: [], incoming: [], outgoing: [] };
+  if (elements.sidebarLevelLabel) elements.sidebarLevelLabel.textContent = "点击进入修行";
+  if (elements.friendsList) elements.friendsList.innerHTML = "";
+  if (elements.collabList) elements.collabList.innerHTML = "";
+  applyProfileUi();
+}
+
+async function loadProfile() {
+  if (!accountUser) return;
+  try {
+    const response = await fetch("/api/profile", { credentials: "same-origin", headers: { Accept: "application/json" } });
+    if (response.status === 401) { accountUser = null; updateAccountUi(); resetProfileUi(); return; }
+    if (!response.ok) throw new Error("profile failed");
+    const data = await response.json();
+    profileCache = data.profile;
+    applyProfileUi();
+  } catch {
+    if (elements.sidebarLevelLabel) elements.sidebarLevelLabel.textContent = "修为暂不可用";
+  }
+}
+
+async function loadWorkspace() {
+  applyProfileUi();
+  if (!accountUser) return;
+  await Promise.all([loadProfile(), loadFriends(), loadCollabTasks()]);
+}
+
+async function requestTaskXp(type = "task") {
+  if (!accountUser) return;
+  try {
+    const response = await fetch("/api/profile/task-xp", {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ type }),
+    });
+    if (!response.ok) return;
+    const data = await response.json();
+    if (data.awarded && data.profile) {
+      profileCache = data.profile;
+      applyProfileUi();
+      if (data.leveledUp) showToast(`恭喜突破！晋升【${data.profile.level.name}】`);
+    }
+  } catch { /* XP sync silently retries on next action */ }
+}
+
+async function handleCheckin() {
+  if (!accountUser || !elements.checkinButton) return;
+  elements.checkinButton.disabled = true;
+  try {
+    const response = await fetch("/api/profile/checkin", { method: "POST", credentials: "same-origin", headers: { Accept: "application/json" } });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "签到失败，请稍后再试。");
+    profileCache = data.profile;
+    applyProfileUi();
+    showToast(data.leveledUp ? `签到成功，突破【${data.profile.level.name}】！` : `签到成功 +${data.gain} XP`);
+  } catch (error) {
+    showToast(error.message || "签到失败");
+    elements.checkinButton.disabled = !!profileCache?.checkin?.checkedInToday;
+  }
+}
+
+async function saveDisplayName(event) {
+  event.preventDefault();
+  const value = elements.displayNameInput?.value.trim();
+  if (!value) return showToast("请输入 1 到 16 个字的道号");
+  try {
+    const response = await fetch("/api/profile", {
+      method: "PUT", credentials: "same-origin",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ displayName: value }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "保存失败。");
+    profileCache = data.profile;
+    applyProfileUi();
+    showToast(`道号已定为「${value}」`);
+  } catch (error) {
+    showToast(error.message || "保存失败");
+  }
+}
+
+async function loadFriends() {
+  if (!accountUser) return;
+  try {
+    const response = await fetch("/api/friends", { credentials: "same-origin", headers: { Accept: "application/json" } });
+    if (!response.ok) return;
+    const data = await response.json();
+    friendsCache = data;
+    renderFriends();
+  } catch { /* friends load retries when workspace opens */ }
+}
+
+function renderFriends() {
+  if (!elements.friendsList) return;
+  if (elements.incomingBlock) elements.incomingBlock.hidden = !friendsCache.incoming?.length;
+  if (elements.incomingList) {
+    elements.incomingList.innerHTML = friendsCache.incoming?.map((item) => `
+      <div class="friend-item">
+        <span class="friend-name">${escapeHtml(item.displayName)}</span>
+        <button class="mini-button" type="button" data-respond="accept" data-id="${item.friendshipId}">同意</button>
+        <button class="mini-button" type="button" data-respond="reject" data-id="${item.friendshipId}">拒绝</button>
+      </div>`).join("") || "";
+  }
+  elements.friendsList.innerHTML = friendsCache.friends?.length
+    ? friendsCache.friends.map((item) => `
+      <div class="friend-item">
+        <span class="friend-name">${escapeHtml(item.displayName)}</span>
+        <span class="friend-level">Lv.${item.level} ${escapeHtml(item.levelName)}</span>
+      </div>`).join("")
+    : '<p class="friend-empty">还没有好友，输入对方邮箱发出第一个申请吧。</p>';
+  renderCollabFriendSelect();
+}
+
+async function sendFriendRequest(event) {
+  event.preventDefault();
+  const email = elements.friendEmail?.value.trim();
+  if (!email) return;
+  try {
+    const response = await fetch("/api/friends", {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "发送失败。");
+    showToast(data.message || "好友申请已发送。");
+    elements.friendEmail.value = "";
+    await loadFriends();
+  } catch (error) {
+    showToast(error.message || "发送失败");
+  }
+}
+
+async function handleFriendRespond(event) {
+  const button = event.target.closest("[data-respond]");
+  if (!button) return;
+  try {
+    const response = await fetch("/api/friends/respond", {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ id: button.dataset.id, action: button.dataset.respond }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "操作失败。");
+    showToast(data.message || "操作成功。");
+    await loadFriends();
+  } catch (error) {
+    showToast(error.message || "操作失败");
+  }
+}
+
+function renderCollabFriendSelect() {
+  if (!elements.collabFriendSelect) return;
+  const options = friendsCache.friends?.map((friend) =>
+    `<option value="${friend.userId}">${escapeHtml(friend.displayName)}（Lv.${friend.level}）</option>`).join("");
+  elements.collabFriendSelect.innerHTML = options || '<option value="">先添加好友</option>';
+}
+
+async function loadCollabTasks() {
+  if (!accountUser) return;
+  try {
+    const response = await fetch("/api/collab", { credentials: "same-origin", headers: { Accept: "application/json" } });
+    if (!response.ok) return;
+    const data = await response.json();
+    renderCollabTasks(data.tasks || []);
+  } catch { /* collab load retries when workspace opens */ }
+}
+
+function renderCollabTasks(tasks) {
+  if (!elements.collabList) return;
+  elements.collabList.innerHTML = tasks.length
+    ? tasks.map((task) => `
+      <div class="collab-item ${task.done ? "done" : ""}">
+        <input class="collab-check" type="checkbox" data-toggle-id="${task.id}" ${task.done ? "checked" : ""} aria-label="完成${escapeHtml(task.title)}" />
+        <div class="collab-body">
+          <span class="collab-title">${escapeHtml(task.title)}</span>
+          <span class="collab-meta">
+            <span class="collab-tag">${categoryLabels[task.category] || "工作"}</span>
+            <span>与 ${escapeHtml(task.partnerName)}</span>
+            ${task.estimate ? `<span>预计 ${escapeHtml(task.estimate)}</span>` : ""}
+            ${task.iAmOwner ? "<span>我发起</span>" : ""}
+          </span>
+        </div>
+        ${task.iAmOwner ? `<button class="mini-button" type="button" data-delete-id="${task.id}">删除</button>` : ""}
+      </div>`).join("")
+    : '<p class="collab-empty">还没有协作任务，和好友一起立一个目标吧。</p>';
+}
+
+async function createCollabTask(event) {
+  event.preventDefault();
+  const title = elements.collabTitleInput?.value.trim();
+  const friendId = elements.collabFriendSelect?.value;
+  if (!title || !friendId) return showToast("请填写标题并选择好友。");
+  try {
+    const response = await fetch("/api/collab", {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ title, friendId, category: elements.collabCategory?.value || "work" }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "创建失败。");
+    showToast("协作任务已创建");
+    elements.collabTitleInput.value = "";
+    await loadCollabTasks();
+  } catch (error) {
+    showToast(error.message || "创建失败");
+  }
+}
+
+async function handleCollabToggle(event) {
+  const checkbox = event.target.closest("[data-toggle-id]");
+  if (!checkbox) return;
+  const id = checkbox.dataset.toggleId;
+  try {
+    const response = await fetch(`/api/collab/${id}`, {
+      method: "PATCH", credentials: "same-origin",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ done: checkbox.checked }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "操作失败。");
+    if (checkbox.checked) {
+      const mine = data.xp?.owner?.awarded ? data.xp.owner : data.xp?.friend;
+      if (mine?.awarded) {
+        await loadProfile();
+        if (mine.leveledUp) showToast(`协作完成，突破【${profileCache.level.name}】！`);
+        else showToast(`协作完成 +${mine.gain} XP`);
+      } else {
+        showToast("协作任务完成");
+      }
+    } else {
+      showToast("任务已恢复进行中");
+    }
+    await loadCollabTasks();
+  } catch (error) {
+    showToast(error.message || "操作失败");
+    await loadCollabTasks();
+  }
+}
+
+async function handleCollabDelete(event) {
+  const button = event.target.closest("[data-delete-id]");
+  if (!button) return;
+  if (!window.confirm("确定删除这个协作任务吗？")) return;
+  try {
+    const response = await fetch(`/api/collab/${button.dataset.deleteId}`, { method: "DELETE", credentials: "same-origin" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "删除失败。");
+    showToast("协作任务已删除");
+    await loadCollabTasks();
+  } catch (error) {
+    showToast(error.message || "删除失败");
+  }
+}
+
+async function loadLeaderboard() {
+  if (!elements.leaderboardList) return;
+  elements.leaderboardList.innerHTML = '<li class="plaza-empty">正在加载修真榜…</li>';
+  try {
+    const response = await fetch("/api/leaderboard", { credentials: "same-origin", headers: { Accept: "application/json" } });
+    if (!response.ok) throw new Error("load failed");
+    const data = await response.json();
+    elements.leaderboardList.innerHTML = data.entries?.length
+      ? data.entries.map((entry) => `
+        <li>
+          <span class="rank-badge">${entry.rank}</span>
+          <span class="lb-name">${escapeHtml(entry.displayName)}</span>
+          <span class="level-pill">Lv.${entry.level} ${escapeHtml(entry.levelName)}</span>
+          <span class="lb-xp">${entry.xp} XP</span>
+        </li>`).join("")
+      : '<li class="plaza-empty">榜上还没有修行者，签到和完成任务即可上榜。</li>';
+    if (elements.myRankCard) {
+      const mine = data.myRank;
+      elements.myRankCard.hidden = !mine;
+      if (mine) {
+        elements.myRankCard.innerHTML = `<span class="level-pill">我的排名</span><strong>第 ${mine.rank} 名</strong><span class="lb-xp">Lv.${mine.level} ${escapeHtml(mine.name)} · ${mine.xp} XP</span>`;
+      }
+    }
+  } catch {
+    elements.leaderboardList.innerHTML = '<li class="plaza-empty">排行榜暂时无法加载，请稍后刷新。</li>';
+  }
 }
 
 function restoreView() {
@@ -1129,6 +1530,7 @@ function handleTaskToggle(event) {
   const shouldRestoreFocus = event.target === document.activeElement;
   persist();
   render();
+  if (task.completed) requestTaskXp("task");
   if (shouldRestoreFocus) {
     [...container.querySelectorAll(".task-check")]
       .find((checkbox) => checkbox.dataset.id === task.id)?.focus({ preventScroll: true });

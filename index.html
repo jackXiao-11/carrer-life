@@ -35,6 +35,64 @@
       .account-dialog #account-logout{width:100%;min-height:44px}
       .account-dialog #account-close{justify-self:center;width:auto;flex:none;text-align:center}
       @media(max-width:767px){.account-control{margin-left:0}.account-button .account-email{max-width:100px}.account-dialog form{padding:22px 20px}.account-dialog header{padding-inline:20px}.account-dialog #account-logged-in{padding:22px 20px}}
+      .workspace-label{display:flex;align-items:center;gap:10px;width:100%;padding:8px;border:0;border-radius:12px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .18s ease}
+      .workspace-label:hover{background:var(--brand-soft,#eef4f6)}
+      .workspace-label .profile-mark{display:grid;place-items:center;width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;font-weight:700}
+      .workspace-label>div{display:grid;gap:2px;flex:1;min-width:0}
+      .workspace-label small{color:var(--text-muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .sidebar-xp{display:grid;gap:6px;padding:0 8px 8px}
+      .sidebar-xp-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+      .sidebar-xp-text{font-size:11px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+      .level-pill{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;font-size:11px;font-weight:700;letter-spacing:.04em;white-space:nowrap}
+      .level-pill.big{font-size:13px;padding:6px 14px}
+      .xp-bar{height:8px;border-radius:999px;background:var(--border,#e2e8f0);overflow:hidden}
+      .xp-bar.big{height:14px}
+      .xp-bar-fill{height:100%;border-radius:inherit;background:linear-gradient(90deg,#a78bfa,#3b82f6);transition:width .6s cubic-bezier(.22,1,.36,1)}
+      .workspace-login{display:grid;justify-items:center;gap:14px;max-width:420px;margin:8vh auto 0;padding:36px 28px;border:1px solid var(--border);border-radius:18px;background:var(--surface,#fff);text-align:center}
+      .workspace-login svg{width:34px;height:34px;color:#7c3aed}
+      .workspace-login p{margin:0;color:var(--text-secondary);font-size:14px;line-height:1.7}
+      .workspace-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;align-items:start}
+      .cultivation-card,.friends-card,.collab-card,.plaza-card{padding:24px;border:1px solid var(--border);border-radius:18px;background:var(--surface,#fff)}
+      .xp-progress{display:grid;gap:8px;margin:18px 0}
+      .xp-progress-text{margin:0;font-size:13px;color:var(--text-secondary);font-variant-numeric:tabular-nums}
+      .checkin-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+      .checkin-streak{font-size:13px;color:var(--text-secondary)}
+      .xp-note{margin:12px 0 0;font-size:12px;color:var(--text-muted)}
+      .name-form{display:grid;gap:8px;margin-top:18px;padding-top:16px;border-top:1px dashed var(--border)}
+      .name-form label{display:grid;gap:6px;font-size:13px;font-weight:600}
+      .name-form input{min-height:42px;padding:0 12px;border:1px solid var(--border);border-radius:10px;font:inherit}
+      .friend-form,.collab-form{display:grid;gap:8px;margin:14px 0}
+      .friend-form{grid-template-columns:1fr auto}
+      .collab-form{grid-template-columns:1.4fr 1fr .8fr auto}
+      .friend-form input,.collab-form input,.collab-form select{min-height:40px;padding:0 10px;border:1px solid var(--border);border-radius:10px;font:inherit;font-size:13px;background:#fff}
+      .friend-block{margin-top:14px}
+      .friend-block-title{margin:0 0 8px;font-size:12px;font-weight:700;color:var(--text-muted);letter-spacing:.06em}
+      .friend-list,.collab-list{display:grid;gap:8px}
+      .friend-item,.collab-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:12px;font-size:13px}
+      .friend-item .friend-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+      .friend-item .friend-level{font-size:11px;color:var(--text-muted);white-space:nowrap}
+      .friend-item .mini-button{padding:5px 10px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12px;font-weight:600;cursor:pointer}
+      .friend-item .mini-button:hover{background:var(--brand-soft,#eef4f6)}
+      .friend-empty,.collab-empty{margin:4px 0 0;color:var(--text-muted);font-size:13px}
+      .collab-item{align-items:flex-start}
+      .collab-item.done{opacity:.6}
+      .collab-item .collab-check{width:20px;height:20px;margin-top:2px;accent-color:#7c3aed;cursor:pointer}
+      .collab-item .collab-body{flex:1;min-width:0;display:grid;gap:4px}
+      .collab-item .collab-title{font-weight:600;overflow:hidden;text-overflow:ellipsis}
+      .collab-item .collab-meta{display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--text-muted)}
+      .collab-item .collab-meta .collab-tag{padding:2px 8px;border-radius:999px;background:var(--brand-soft,#eef4f6);color:var(--brand,#1a647b);font-weight:600}
+      .plaza-card{max-width:720px;margin:0 auto}
+      .plaza-hint{margin:0 0 16px;color:var(--text-secondary);font-size:13px;line-height:1.7}
+      .my-rank{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:12px 14px;border-radius:12px;background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(37,99,235,.08));font-size:13px}
+      .leaderboard{display:grid;gap:8px;margin:0;padding:0;list-style:none;counter-reset:rank}
+      .leaderboard li{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;font-size:14px}
+      .leaderboard li .rank-badge{display:grid;place-items:center;min-width:30px;height:30px;border-radius:10px;background:var(--brand-soft,#eef4f6);color:var(--brand,#1a647b);font-weight:800;font-variant-numeric:tabular-nums}
+      .leaderboard li:nth-child(1) .rank-badge{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff}
+      .leaderboard li:nth-child(2) .rank-badge{background:linear-gradient(135deg,#94a3b8,#64748b);color:#fff}
+      .leaderboard li:nth-child(3) .rank-badge{background:linear-gradient(135deg,#d97706,#92400e);color:#fff}
+      .leaderboard li .lb-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+      .leaderboard li .lb-xp{font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+      .plaza-empty{margin:0;color:var(--text-muted);font-size:14px;text-align:center;padding:18px 0}
     </style>
   </head>
   <body>
@@ -71,6 +129,10 @@
             <i data-lucide="notebook-pen"></i>
             <span>工作记录</span>
           </button>
+          <button class="nav-item" type="button" data-view="plaza">
+            <i data-lucide="trophy"></i>
+            <span>广场</span>
+          </button>
           <button
             class="nav-item ai-nav"
             type="button"
@@ -85,10 +147,17 @@
         </nav>
 
         <div class="sidebar-bottom">
-          <div class="workspace-label">
-            <span class="profile-mark">CL</span>
-            <div><strong>个人工作空间</strong><small>Career Life</small></div>
-            <i data-lucide="lock-keyhole"></i>
+          <button class="workspace-label" type="button" data-view="workspace" title="打开个人工作空间">
+            <span class="profile-mark">修</span>
+            <div><strong>个人工作空间</strong><small id="sidebar-level-label">点击进入修行</small></div>
+            <i data-lucide="chevron-right"></i>
+          </button>
+          <div class="sidebar-xp" id="sidebar-xp" hidden>
+            <div class="sidebar-xp-row">
+              <span class="level-pill" id="sidebar-level-pill">凡人</span>
+              <span class="sidebar-xp-text" id="sidebar-xp-text">0 XP</span>
+            </div>
+            <div class="xp-bar"><div class="xp-bar-fill" id="sidebar-xp-fill" style="width:0%"></div></div>
           </div>
           <div class="sidebar-status">
             <span class="status-dot" aria-hidden="true"></span>
@@ -370,6 +439,117 @@
               </div>
               <div class="record-list" id="record-list"></div>
             </section>
+          </div>
+        </section>
+
+        <section
+          class="view"
+          id="workspace-view"
+          role="region"
+          aria-labelledby="workspace-view-title"
+        >
+          <div class="workspace-login" id="workspace-login" hidden>
+            <i data-lucide="sparkles"></i>
+            <h2 id="workspace-view-title">登录后开启修仙之旅</h2>
+            <p>注册账号后可以每日签到、积累修为、加好友、一起完成协作任务。</p>
+            <button class="primary-button" type="button" id="workspace-login-button">
+              <i data-lucide="user-round"></i><span>立即登录 / 注册</span>
+            </button>
+          </div>
+
+          <div class="workspace-grid" id="workspace-grid" hidden>
+            <section class="cultivation-card" aria-labelledby="cultivation-title">
+              <div class="section-heading compact-heading">
+                <div>
+                  <p class="heading-kicker">个人工作空间</p>
+                  <h2 id="cultivation-title">我的修为</h2>
+                </div>
+                <span class="level-pill big" id="ws-level-pill">凡人</span>
+              </div>
+              <div class="xp-progress">
+                <div class="xp-bar big"><div class="xp-bar-fill" id="ws-xp-fill" style="width:0%"></div></div>
+                <p class="xp-progress-text" id="ws-xp-text">0 XP</p>
+              </div>
+              <div class="checkin-row">
+                <button class="primary-button" type="button" id="checkin-button">
+                  <i data-lucide="calendar-check"></i><span>每日签到 +10</span>
+                </button>
+                <span class="checkin-streak" id="checkin-streak">连续签到 0 天</span>
+              </div>
+              <p class="xp-note" id="ws-task-xp-note">今日任务经验 0/5</p>
+              <form class="name-form" id="name-form">
+                <label>
+                  <span>道号（排行榜中显示）</span>
+                  <input id="display-name-input" maxlength="16" placeholder="无名修士" />
+                </label>
+                <button class="secondary-button" type="submit">保存道号</button>
+              </form>
+            </section>
+
+            <section class="friends-card" aria-labelledby="friends-title">
+              <div class="section-heading compact-heading">
+                <div>
+                  <p class="heading-kicker">道友</p>
+                  <h2 id="friends-title">我的好友</h2>
+                </div>
+              </div>
+              <form class="friend-form" id="friend-form">
+                <input type="email" id="friend-email" placeholder="输入对方注册邮箱" required maxlength="160" />
+                <button class="secondary-button" type="submit">加好友</button>
+              </form>
+              <div class="friend-sections" id="friend-sections">
+                <div class="friend-block" id="incoming-block" hidden>
+                  <p class="friend-block-title">收到的申请</p>
+                  <div id="incoming-list" class="friend-list"></div>
+                </div>
+                <div class="friend-block">
+                  <p class="friend-block-title">好友列表</p>
+                  <div id="friends-list" class="friend-list"></div>
+                </div>
+              </div>
+            </section>
+
+            <section class="collab-card" aria-labelledby="collab-title">
+              <div class="section-heading compact-heading">
+                <div>
+                  <p class="heading-kicker">结伴修行</p>
+                  <h2 id="collab-title">协作任务</h2>
+                </div>
+              </div>
+              <form class="collab-form" id="collab-form">
+                <input type="text" id="collab-title-input" placeholder="协作任务标题" required maxlength="80" />
+                <select id="collab-friend-select" aria-label="选择好友"></select>
+                <select id="collab-category" aria-label="任务分类">
+                  <option value="work">工作</option>
+                  <option value="software">软件</option>
+                  <option value="english">英语</option>
+                </select>
+                <button class="secondary-button" type="submit">创建</button>
+              </form>
+              <div id="collab-list" class="collab-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section
+          class="view"
+          id="plaza-view"
+          role="region"
+          aria-labelledby="plaza-view-title"
+        >
+          <div class="plaza-card">
+            <div class="section-heading compact-heading">
+              <div>
+                <p class="heading-kicker">广场</p>
+                <h2 id="plaza-view-title">修真排行榜</h2>
+              </div>
+              <button class="icon-button" type="button" id="leaderboard-refresh" aria-label="刷新排行榜" title="刷新排行榜">
+                <i data-lucide="refresh-cw"></i>
+              </button>
+            </div>
+            <p class="plaza-hint">展示修为最高的前十位修行者。完成签到和任务可获得经验。</p>
+            <div id="my-rank-card" class="my-rank" hidden></div>
+            <ol class="leaderboard" id="leaderboard-list"></ol>
           </div>
         </section>
 
