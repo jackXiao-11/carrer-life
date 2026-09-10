@@ -279,6 +279,7 @@ function bindEvents() {
   elements.quizBody?.addEventListener("change", () => {
     if (elements.quizAnswerButton) elements.quizAnswerButton.disabled = !elements.quizBody.querySelector("input[name='quiz-option']:checked");
   });
+  bindLauncherDrag();
   elements.chatModel.addEventListener("change", () =>
     selectModel(elements.chatModel.value),
   );
@@ -2021,6 +2022,96 @@ function completeTaskFromButton(id) {
   renderWorkspaceStats();
   showToast("已标记完成，提交验收后获得经验");
   openVerifyDialog(task.id);
+}
+
+let launcherDrag = null;
+let launcherSuppressClick = false;
+const LAUNCHER_POS_KEY = "career-life-launcher-pos";
+
+function loadLauncherPosition() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LAUNCHER_POS_KEY));
+    return saved && Number.isFinite(saved.left) && Number.isFinite(saved.top) ? saved : null;
+  } catch {
+    return null;
+  }
+}
+
+function applyLauncherPosition(left, top) {
+  const launcher = elements.chatLauncher;
+  if (!launcher) return;
+  const size = launcher.offsetWidth || 56;
+  const maxX = Math.max(8, window.innerWidth - size - 8);
+  const maxY = Math.max(8, window.innerHeight - size - 8);
+  const x = Math.min(Math.max(8, left), maxX);
+  const y = Math.min(Math.max(8, top), maxY);
+  launcher.style.left = `${x}px`;
+  launcher.style.top = `${y}px`;
+  launcher.style.right = "auto";
+  launcher.style.bottom = "auto";
+}
+
+function saveLauncherPosition() {
+  const launcher = elements.chatLauncher;
+  if (!launcher) return;
+  localStorage.setItem(LAUNCHER_POS_KEY, JSON.stringify({ left: launcher.offsetLeft, top: launcher.offsetTop }));
+}
+
+function bindLauncherDrag() {
+  const launcher = elements.chatLauncher;
+  if (!launcher) return;
+  const saved = loadLauncherPosition();
+  if (saved) applyLauncherPosition(saved.left, saved.top);
+
+  launcher.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    const rect = launcher.getBoundingClientRect();
+    launcherDrag = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+      moved: false,
+    };
+    launcher.setPointerCapture(event.pointerId);
+  });
+
+  launcher.addEventListener("pointermove", (event) => {
+    if (!launcherDrag || event.pointerId !== launcherDrag.pointerId) return;
+    const dx = event.clientX - launcherDrag.startX;
+    const dy = event.clientY - launcherDrag.startY;
+    if (!launcherDrag.moved && Math.hypot(dx, dy) < 6) return;
+    launcherDrag.moved = true;
+    launcher.classList.add("is-dragging");
+    applyLauncherPosition(event.clientX - launcherDrag.offsetX, event.clientY - launcherDrag.offsetY);
+  });
+
+  const endDrag = (event) => {
+    if (!launcherDrag || event.pointerId !== launcherDrag.pointerId) return;
+    const wasMoved = launcherDrag.moved;
+    launcherDrag = null;
+    launcher.classList.remove("is-dragging");
+    if (wasMoved) {
+      launcherSuppressClick = true;
+      saveLauncherPosition();
+      showToast("AI 助手位置已更新");
+    }
+  };
+  launcher.addEventListener("pointerup", endDrag);
+  launcher.addEventListener("pointercancel", endDrag);
+
+  launcher.addEventListener("click", (event) => {
+    if (!launcherSuppressClick) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    launcherSuppressClick = false;
+  }, true);
+
+  window.addEventListener("resize", () => {
+    const position = loadLauncherPosition();
+    if (position) applyLauncherPosition(position.left, position.top);
+  });
 }
 
 function saveRecord(event) {
