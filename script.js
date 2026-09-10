@@ -2000,6 +2000,7 @@ function handleTaskAction(event) {
   const button = event.target.closest("[data-action]");
   if (!button) return;
   const { action, id } = button.dataset;
+  if (action === "complete") completeTaskFromButton(id);
   if (action === "verify") openVerifyDialog(id);
   if (action === "edit") openTaskDialog(id);
   if (action === "delete" && window.confirm("确定删除这个任务吗？")) {
@@ -2008,6 +2009,18 @@ function handleTaskAction(event) {
     render();
     showToast("任务已删除");
   }
+}
+
+function completeTaskFromButton(id) {
+  const task = state.tasks.find((item) => item.id === id);
+  if (!task || task.completed) return;
+  task.completed = true;
+  task.progress = 100;
+  persist();
+  render();
+  renderWorkspaceStats();
+  showToast("已标记完成，提交验收后获得经验");
+  openVerifyDialog(task.id);
 }
 
 function saveRecord(event) {
@@ -2220,6 +2233,7 @@ function taskTemplate(task) {
         ${taskVerifyBadgeTemplate(task)}
       </div>
       <div class="task-actions">
+        ${!task.completed ? `<button class="complete-task-button" type="button" data-action="complete" data-id="${task.id}"><i data-lucide="check"></i>完成</button>` : ""}
         ${task.completed && !task.verified ? `<button class="verify-button" type="button" data-action="verify" data-id="${task.id}"><i data-lucide="badge-check"></i>验收</button>` : ""}
         <button class="icon-button" type="button" data-action="edit" data-id="${task.id}" aria-label="编辑任务" title="编辑任务">
           <i data-lucide="pencil"></i>
@@ -2242,6 +2256,10 @@ function planTemplate(task) {
         <strong>${escapeHtml(task.title)}</strong>
         <p>${escapeHtml(task.notes || `${task.minutes} 分钟学习任务`)}</p>
         ${taskProgressTemplate(task)}
+      </div>
+      <div class="task-actions">
+        ${!task.completed ? `<button class="complete-task-button" type="button" data-action="complete" data-id="${task.id}"><i data-lucide="check"></i>完成</button>` : ""}
+        ${task.completed && !task.verified ? `<button class="verify-button" type="button" data-action="verify" data-id="${task.id}"><i data-lucide="badge-check"></i>验收</button>` : ""}
       </div>
       ${taskVerifyBadgeTemplate(task)}
       <button class="icon-button" type="button" data-action="edit" data-id="${task.id}" aria-label="编辑任务" title="编辑任务">
