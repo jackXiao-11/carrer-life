@@ -191,6 +191,14 @@
         .ai-window,.ai-window.is-expanded{inset:auto 12px calc(78px + env(safe-area-inset-bottom)) 12px;z-index:50;width:calc(100vw - 24px);height:min(50vh,480px);height:min(50dvh,480px);max-height:none;border:1px solid rgba(255,255,255,.92);border-radius:20px;overflow:hidden}
         .ai-window.is-expanded{height:min(72vh,640px);height:min(72dvh,640px)}
       }
+      .workspace-nav{display:none}
+      @media(max-width:767px){
+        .main-nav{grid-template-columns:repeat(5,minmax(0,1fr))}
+        .main-nav .nav-item{font-size:11px}
+        .workspace-nav{display:flex}
+        .ai-nav{display:none}
+      }
+      @media(max-width:400px){.main-nav .nav-item span{font-size:10px}}
     </style>
   </head>
   <body>
@@ -230,6 +238,10 @@
           <button class="nav-item" type="button" data-view="plaza">
             <i data-lucide="trophy"></i>
             <span>广场</span>
+          </button>
+          <button class="nav-item workspace-nav" type="button" data-view="workspace">
+            <i data-lucide="user-round"></i>
+            <span>我的空间</span>
           </button>
           <button
             class="nav-item ai-nav"
