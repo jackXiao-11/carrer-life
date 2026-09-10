@@ -39,6 +39,7 @@ let accountSyncQueued = false;
 let accountMode = "login";
 let profileCache = null;
 let friendsCache = { friends: [], incoming: [], outgoing: [] };
+let currentView = "dashboard";
 
 const CULTIVATION_LEVELS = [
   { level: 1, name: "凡人", xp: 0 },
@@ -394,7 +395,17 @@ function switchView(viewName) {
   elements.addTaskButton.hidden = viewName === "records" || viewName === "workspace" || viewName === "plaza";
   if (viewName === "workspace") loadWorkspace();
   if (viewName === "plaza") loadLeaderboard();
-  if (window.location.hash !== `#${viewName}`) window.location.hash = viewName;
+  const targetHash = `#${viewName}`;
+  if (window.location.hash !== targetHash) {
+    if (viewName !== "dashboard" && currentView === "dashboard") {
+      // Home -> secondary page: keep one history entry so swiping back always returns home.
+      window.history.pushState({ view: viewName }, "", targetHash);
+    } else {
+      // Secondary -> secondary, or back to home: replace in place to avoid a messy stack.
+      window.history.replaceState({ view: viewName }, "", targetHash);
+    }
+  }
+  currentView = viewName;
 }
 
 async function initializeAccount() {
@@ -1283,6 +1294,7 @@ async function loadLeaderboard() {
 
 function restoreView() {
   const view = window.location.hash.slice(1);
+  currentView = viewTitles[view] ? view : "dashboard";
   switchView(view);
   if (view === "ai") toggleChat(true);
 }
