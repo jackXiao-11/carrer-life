@@ -540,7 +540,7 @@ function applyProfileUi() {
   const avatar = profileCache?.avatar || null;
   if (elements.brandAvatar && elements.brandIcon) {
     elements.brandAvatar.hidden = !avatar;
-    elements.brandIcon.style.display = avatar ? "none" : "";
+    elements.brandAvatar.closest(".brand-mark")?.classList.toggle("has-avatar", !!avatar);
     if (avatar) elements.brandAvatar.src = avatar;
   }
   if (elements.sidebarAvatar) {
