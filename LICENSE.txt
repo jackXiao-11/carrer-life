@@ -1,0 +1,14 @@
+Copyright © 2026 庞潇. All rights reserved.
+
+Except as permitted by applicable law or a separate valid license, no permission
+is granted to copy, modify, distribute, sublicense, sell, or commercially reuse
+the original copyrightable code and content owned by 庞潇 in Career Life without
+prior written authorization. Normal use through the hosted application is permitted.
+
+Third-party software, assets, user content, public-domain material and elements
+not protected by copyright are excluded from this proprietary notice.
+Third-party components remain governed by their own licenses. See
+assets/THIRD_PARTY.md and the notices shipped with vendor files.
+
+This notice does not assert copyright registration, trademark registration,
+exclusive rights in generic functionality, or exclusive ownership of AI output.
