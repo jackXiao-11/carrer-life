@@ -964,7 +964,9 @@ function renderFiles(data) {
     elements.storageFill.style.width = `${Math.min(100, (usedBytes / quotaBytes) * 100).toFixed(1)}%`;
   }
   if (elements.storageLevelNote) {
-    elements.storageLevelNote.textContent = usage.level
+    elements.storageLevelNote.textContent = usage.isAdmin
+      ? "站长特权 · 专属 3GB 云存储"
+      : usage.level
       ? `当前 Lv.${usage.level} 境界 · 每提升 1 级容量 +100MB，最高 1GB`
       : "每提升 1 级境界，容量 +100MB，最高 1GB";
   }
@@ -1400,7 +1402,7 @@ async function loadLeaderboard() {
       <div class="podium-spot ${position}">
         <span class="podium-rank">NO.${entry.rank}</span>
         <span class="podium-avatar">${avatarOf(entry)}</span>
-        <span class="podium-name">${escapeHtml(entry.displayName)}</span>
+        <span class="podium-name">${escapeHtml(entry.displayName)}${entry.isAdmin ? '<span class="admin-badge">👑 站长</span>' : ""}</span>
         <span class="level-pill">Lv.${entry.level} ${escapeHtml(entry.levelName)}</span>
         <span class="podium-xp">${entry.xp} XP</span>
       </div>` : '<div class="podium-spot" aria-hidden="true"></div>';
@@ -1416,7 +1418,7 @@ async function loadLeaderboard() {
         ${rest.map((entry) => `
           <li>
             <span class="rank-badge">${entry.rank}</span>
-            <span class="lb-name">${escapeHtml(entry.displayName)}</span>
+            <span class="lb-name">${escapeHtml(entry.displayName)}${entry.isAdmin ? '<span class="admin-badge">👑 站长</span>' : ""}</span>
             <span class="level-pill">Lv.${entry.level} ${escapeHtml(entry.levelName)}</span>
             <span class="lb-xp">${entry.xp} XP</span>
           </li>`).join("")}

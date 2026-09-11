@@ -6,11 +6,17 @@ const MB = 1024 * 1024;
 const MAX_FILE_SIZE = 5 * MB;
 const MAX_FILE_COUNT = 500;
 const QUOTA_PER_LEVEL = 100 * MB;
-const GLOBAL_CAP = 2 * 1024 * MB;
+const ADMIN_EMAIL = "2435726542@qq.com";
+const ADMIN_QUOTA = 3 * 1024 * MB;
+const NON_ADMIN_GLOBAL_CAP = 2 * 1024 * MB;
 const CHUNK_SIZE = 700 * 1024;
 
-function quotaOf(xp) {
-  return getLevelInfo(xp).level * QUOTA_PER_LEVEL;
+function isAdminUser(user) {
+  return user?.email === ADMIN_EMAIL;
+}
+
+function quotaOf(user, xp) {
+  return isAdminUser(user) ? ADMIN_QUOTA : getLevelInfo(xp).level * QUOTA_PER_LEVEL;
 }
 
 function sanitizeName(name) {
@@ -27,7 +33,10 @@ async function usageOf(env, userId) {
 }
 
 async function globalUsageOf(env) {
-  const row = await env.DB.prepare("SELECT COALESCE(SUM(size), 0) AS used FROM files").first();
+  const row = await env.DB.prepare(
+    `SELECT COALESCE(SUM(f.size), 0) AS used FROM files f
+     JOIN accounts a ON a.id = f.user_id WHERE a.email != ?`,
+  ).bind(ADMIN_EMAIL).first();
   return Number(row?.used) || 0;
 }
 
@@ -47,6 +56,7 @@ export async function onRequestGet(context) {
   if (!session.user) return json({ error: "请先登录。" }, 401);
   const profile = await ensureProfile(env, session.user.id);
   const level = getLevelInfo(profile.xp).level;
+  const admin = isAdminUser(session.user);
   const rows = await env.DB.prepare(
     "SELECT id, name, size, type, created_at FROM files WHERE user_id = ? ORDER BY created_at DESC LIMIT 500",
   ).bind(session.user.id).all();
@@ -59,7 +69,7 @@ export async function onRequestGet(context) {
       type: file.type,
       createdAt: file.created_at,
     })),
-    usage: { used: usage.used, count: usage.count, quota: quotaOf(profile.xp), level },
+    usage: { used: usage.used, count: usage.count, quota: quotaOf(session.user, profile.xp), level, isAdmin: admin },
   });
 }
 
@@ -83,14 +93,19 @@ export async function onRequestPost(context) {
 
   const profile = await ensureProfile(env, session.user.id);
   const level = getLevelInfo(profile.xp).level;
+  const admin = isAdminUser(session.user);
   const usage = await usageOf(env, session.user.id);
   if (usage.count >= MAX_FILE_COUNT) return json({ error: "文件数量已达上限（500 个）。" }, 413);
-  const quota = quotaOf(profile.xp);
+  const quota = quotaOf(session.user, profile.xp);
   if (usage.used + file.size > quota) {
-    return json({ error: `存储空间不足：当前 Lv.${level} 境界配额 ${quota / MB}MB，完成任务提升境界可扩容。` }, 413);
+    return json({
+      error: admin
+        ? `站长存储空间已满（${quota / (1024 * MB)}GB）。`
+        : `存储空间不足：当前 Lv.${level} 境界配额 ${quota / MB}MB，完成任务提升境界可扩容。`,
+    }, 413);
   }
-  if (await globalUsageOf(env) + file.size > GLOBAL_CAP) {
-    return json({ error: "站点云存储空间已满，请联系站长清理或扩容。" }, 507);
+  if (!admin && (await globalUsageOf(env)) + file.size > NON_ADMIN_GLOBAL_CAP) {
+    return json({ error: "普通用户的共享存储空间（2GB）已满，请联系站长。" }, 507);
   }
 
   const id = crypto.randomUUID();
