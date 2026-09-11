@@ -964,12 +964,18 @@ function renderFiles(data) {
     elements.storageFill.style.width = `${Math.min(100, (usedBytes / quotaBytes) * 100).toFixed(1)}%`;
   }
   if (elements.storageLevelNote) {
+    const eligible = usage.isAdmin || usage.eligible;
     elements.storageLevelNote.textContent = usage.isAdmin
       ? "站长特权 · 专属 3GB 云存储"
+      : !eligible && usage.blockedReason === "level"
+      ? "🔒 需要达到 Lv.3 筑基期解锁云存储，继续修行吧"
+      : !eligible
+      ? "⏸ 已两周未签到，云存储冻结中 · 今天签到即可恢复"
       : usage.level
       ? `当前 Lv.${usage.level} 境界 · 每提升 1 级容量 +100MB，最高 1GB`
       : "每提升 1 级境界，容量 +100MB，最高 1GB";
   }
+  if (elements.uploadButton) elements.uploadButton.disabled = !(usage.isAdmin || usage.eligible);
   elements.fileList.innerHTML = data.files?.length
     ? data.files.map((file) => `
       <div class="file-item">

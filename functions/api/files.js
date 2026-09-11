@@ -1,6 +1,6 @@
 import { getSessionUser, json, methodNotAllowed, sameOrigin } from "./_lib.js";
 import { ensureProfile } from "./_profile.js";
-import { getLevelInfo } from "./_levels.js";
+import { getLevelInfo, shanghaiToday } from "./_levels.js";
 
 const MB = 1024 * 1024;
 const MAX_FILE_SIZE = 5 * MB;
@@ -17,6 +17,20 @@ function isAdminUser(user) {
 
 function quotaOf(user, xp) {
   return isAdminUser(user) ? ADMIN_QUOTA : getLevelInfo(xp).level * QUOTA_PER_LEVEL;
+}
+
+function isRecentlyActive(lastCheckinDate) {
+  if (!lastCheckinDate) return false;
+  const last = new Date(`${lastCheckinDate}T00:00:00+08:00`).getTime();
+  return Number.isFinite(last) && Date.now() - last <= 14 * 86400 * 1000;
+}
+
+function storageEligibility(user, profile) {
+  if (isAdminUser(user)) return { eligible: true, blockedReason: null };
+  const level = getLevelInfo(profile.xp).level;
+  if (level < 3) return { eligible: false, blockedReason: "level" };
+  if (!isRecentlyActive(profile.last_checkin_date)) return { eligible: false, blockedReason: "inactive" };
+  return { eligible: true, blockedReason: null };
 }
 
 function sanitizeName(name) {
@@ -57,6 +71,7 @@ export async function onRequestGet(context) {
   const profile = await ensureProfile(env, session.user.id);
   const level = getLevelInfo(profile.xp).level;
   const admin = isAdminUser(session.user);
+  const eligibility = storageEligibility(session.user, profile);
   const rows = await env.DB.prepare(
     "SELECT id, name, size, type, created_at FROM files WHERE user_id = ? ORDER BY created_at DESC LIMIT 500",
   ).bind(session.user.id).all();
@@ -69,7 +84,15 @@ export async function onRequestGet(context) {
       type: file.type,
       createdAt: file.created_at,
     })),
-    usage: { used: usage.used, count: usage.count, quota: quotaOf(session.user, profile.xp), level, isAdmin: admin },
+    usage: {
+      used: usage.used,
+      count: usage.count,
+      quota: quotaOf(session.user, profile.xp),
+      level,
+      isAdmin: admin,
+      eligible: eligibility.eligible,
+      blockedReason: eligibility.blockedReason,
+    },
   });
 }
 
@@ -94,6 +117,13 @@ export async function onRequestPost(context) {
   const profile = await ensureProfile(env, session.user.id);
   const level = getLevelInfo(profile.xp).level;
   const admin = isAdminUser(session.user);
+  const eligibility = storageEligibility(session.user, profile);
+  if (!eligibility.eligible) {
+    const message = eligibility.blockedReason === "level"
+      ? "云存储需要达到 Lv.3 筑基期才能使用，继续完成任务提升境界吧。"
+      : "已连续两周未签到，云存储权限已冻结；今天签到后即可恢复。";
+    return json({ error: message }, 403);
+  }
   const usage = await usageOf(env, session.user.id);
   if (usage.count >= MAX_FILE_COUNT) return json({ error: "文件数量已达上限（500 个）。" }, 413);
   const quota = quotaOf(session.user, profile.xp);
