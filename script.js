@@ -169,6 +169,17 @@ const elements = {
   verifyResultText: document.querySelector("#verify-result-text"),
   wordList: document.querySelector("#word-list"),
   wordCount: document.querySelector("#word-count"),
+  filesRefresh: document.querySelector("#files-refresh"),
+  fileInput: document.querySelector("#file-input"),
+  uploadButton: document.querySelector("#upload-button"),
+  uploadProgress: document.querySelector("#upload-progress"),
+  uploadName: document.querySelector("#upload-name"),
+  uploadProgressFill: document.querySelector("#upload-progress-fill"),
+  storageUsed: document.querySelector("#storage-used"),
+  storageFilesCount: document.querySelector("#storage-files-count"),
+  storageFill: document.querySelector("#storage-fill"),
+  storageLevelNote: document.querySelector("#storage-level-note"),
+  fileList: document.querySelector("#file-list"),
 };
 
 initialize();
@@ -270,6 +281,10 @@ function bindEvents() {
   elements.collabList?.addEventListener("change", handleCollabToggle);
   elements.collabList?.addEventListener("click", handleCollabDelete);
   elements.leaderboardRefresh?.addEventListener("click", loadLeaderboard);
+  elements.filesRefresh?.addEventListener("click", loadFiles);
+  elements.uploadButton?.addEventListener("click", () => elements.fileInput?.click());
+  elements.fileInput?.addEventListener("change", handleFileSelect);
+  elements.fileList?.addEventListener("click", handleFileAction);
   elements.avatarInput?.addEventListener("change", handleAvatarSelect);
   elements.avatarRemove?.addEventListener("click", removeAvatar);
   document.querySelector("#close-verify-button")?.addEventListener("click", closeVerifyDialog);
@@ -663,7 +678,7 @@ async function loadWorkspace() {
   applyProfileUi();
   if (!accountUser) return;
   renderWorkspaceStats();
-  await Promise.all([loadProfile(), loadFriends(), loadCollabTasks()]);
+  await Promise.all([loadProfile(), loadFriends(), loadCollabTasks(), loadFiles()]);
   renderWorkspaceStats();
 }
 
@@ -904,6 +919,132 @@ function renderWords() {
         <time>${escapeHtml(entry.date || "")}</time>
       </div>`).join("")
     : '<p class="word-empty">还没有单词。提交英语任务验收时填写的单词会自动记录在这里。</p>';
+}
+
+function formatBytes(bytes) {
+  const units = ["B", "KB", "MB", "GB"];
+  let value = Number(bytes) || 0;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${value.toFixed(value >= 100 || unit === 0 ? 0 : 1)} ${units[unit]}`;
+}
+
+function fileIconFor(name, type) {
+  const extension = (name.split(".").pop() || "").toLowerCase();
+  if (["js", "ts", "jsx", "tsx", "py", "java", "c", "cpp", "cs", "go", "rs", "rb", "php", "html", "css", "json", "xml", "sh", "sql"].includes(extension)) return "file-code-2";
+  if (String(type || "").startsWith("image/") || ["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(extension)) return "image";
+  if (["zip", "rar", "7z", "tar", "gz"].includes(extension)) return "file-archive";
+  if (["md", "txt", "doc", "docx", "pdf"].includes(extension)) return "file-text";
+  return "file";
+}
+
+async function loadFiles() {
+  if (!accountUser || !elements.fileList) return;
+  try {
+    const response = await fetch("/api/files", { credentials: "same-origin", headers: { Accept: "application/json" } });
+    if (response.status === 401) return;
+    if (!response.ok) throw new Error("load failed");
+    const data = await response.json();
+    renderFiles(data);
+  } catch {
+    elements.fileList.innerHTML = '<p class="file-empty">文件列表暂时无法加载，请点右上角刷新重试。</p>';
+  }
+}
+
+function renderFiles(data) {
+  const usage = data.usage || {};
+  const quotaBytes = usage.quota || 1024 * 1024 * 1024;
+  const usedBytes = usage.used || 0;
+  if (elements.storageUsed) elements.storageUsed.textContent = `${formatBytes(usedBytes)} / ${formatBytes(quotaBytes)}`;
+  if (elements.storageFilesCount) elements.storageFilesCount.textContent = `${usage.count || 0} 个文件`;
+  if (elements.storageFill) {
+    elements.storageFill.style.width = `${Math.min(100, (usedBytes / quotaBytes) * 100).toFixed(1)}%`;
+  }
+  if (elements.storageLevelNote) {
+    elements.storageLevelNote.textContent = usage.level
+      ? `当前 Lv.${usage.level} 境界 · 每提升 1 级容量 +100MB，最高 1GB`
+      : "每提升 1 级境界，容量 +100MB，最高 1GB";
+  }
+  elements.fileList.innerHTML = data.files?.length
+    ? data.files.map((file) => `
+      <div class="file-item">
+        <span class="file-icon"><i data-lucide="${fileIconFor(file.name, file.type)}"></i></span>
+        <div class="file-info">
+          <span class="file-name" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</span>
+          <span class="file-meta">${formatBytes(file.size)} · ${formatDate(new Date(file.createdAt).toISOString().slice(0, 10))}</span>
+        </div>
+        <div class="file-actions">
+          <a class="mini-button" href="/api/files/${file.id}/download" download>下载</a>
+          <button class="mini-button" type="button" data-delete-file="${file.id}">删除</button>
+        </div>
+      </div>`).join("")
+    : '<p class="file-empty">还没有文件，点「上传文件」把代码或学习资料存进来。</p>';
+  refreshIcons();
+}
+
+function handleFileSelect(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  uploadFileWithProgress(file);
+  event.target.value = "";
+}
+
+function uploadFileWithProgress(file) {
+  if (!accountUser) {
+    showToast("请先登录再上传文件。");
+    return;
+  }
+  const form = new FormData();
+  form.append("file", file);
+  const xhr = new XMLHttpRequest();
+  elements.uploadProgress.hidden = false;
+  elements.uploadName.textContent = `正在上传：${file.name}`;
+  elements.uploadProgressFill.style.width = "0%";
+  xhr.upload.addEventListener("progress", (event) => {
+    if (!event.lengthComputable) return;
+    const percent = Math.round((event.loaded / event.total) * 100);
+    elements.uploadProgressFill.style.width = `${percent}%`;
+    elements.uploadName.textContent = `正在上传：${file.name}（${percent}%）`;
+  });
+  xhr.addEventListener("load", async () => {
+    elements.uploadProgress.hidden = true;
+    try {
+      const data = JSON.parse(xhr.responseText || "{}");
+      if (xhr.status >= 200 && xhr.status < 300) {
+        showToast(`「${data.file?.name || file.name}」已存入云存储`);
+        await loadFiles();
+      } else {
+        showToast(data.error || "上传失败，请重试。");
+      }
+    } catch {
+      showToast("上传失败，请重试。");
+    }
+  });
+  xhr.addEventListener("error", () => {
+    elements.uploadProgress.hidden = true;
+    showToast("网络异常，上传失败。");
+  });
+  xhr.open("POST", "/api/files");
+  xhr.withCredentials = true;
+  xhr.send(form);
+}
+
+async function handleFileAction(event) {
+  const button = event.target.closest("[data-delete-file]");
+  if (!button) return;
+  if (!window.confirm("确定删除这个文件吗？删除后无法恢复。")) return;
+  try {
+    const response = await fetch(`/api/files/${button.dataset.deleteFile}`, { method: "DELETE", credentials: "same-origin" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "删除失败。");
+    showToast("文件已删除");
+    await loadFiles();
+  } catch (error) {
+    showToast(error.message || "删除失败");
+  }
 }
 
 async function handleCheckin() {

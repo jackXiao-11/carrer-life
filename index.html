@@ -210,6 +210,23 @@
         .view-subtitle{margin-top:2px;font-size:12px}
         .topbar > .primary-button,.topbar .primary-button{width:auto;min-width:44px;min-height:42px;padding:0 16px;align-self:flex-start}
       }
+      .storage-card{display:grid;gap:14px}
+      .storage-usage{display:grid;gap:8px}
+      .storage-usage-row{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;color:var(--text-secondary);font-variant-numeric:tabular-nums}
+      .storage-fill{background:linear-gradient(90deg,#38bdf8,#6366f1)}
+      .storage-actions{display:flex}
+      .upload-progress{display:grid;gap:6px}
+      .file-list{display:grid;gap:8px;max-height:340px;overflow-y:auto}
+      .file-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:#fff}
+      .file-icon{display:grid;place-items:center;width:36px;height:36px;flex:0 0 36px;border-radius:10px;background:var(--brand-soft,#eef4f6);color:var(--brand,#1a647b)}
+      .file-icon svg{width:18px;height:18px}
+      .file-info{flex:1;min-width:0;display:grid;gap:2px}
+      .file-name{font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .file-meta{font-size:11px;color:var(--text-muted)}
+      .file-actions{display:flex;gap:6px}
+      .file-empty{margin:0;color:var(--text-muted);font-size:13px}
+      .mini-button{display:inline-flex;align-items:center;justify-content:center;padding:5px 10px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--text-primary);font-size:12px;font-weight:600;text-decoration:none;cursor:pointer;white-space:nowrap}
+      .mini-button:hover{background:var(--brand-soft,#eef4f6)}
     </style>
   </head>
   <body>
@@ -692,6 +709,35 @@
               </form>
               <div id="collab-list" class="collab-list"></div>
             </section>
+
+            <section class="storage-card" aria-labelledby="storage-title">
+              <div class="section-heading compact-heading">
+                <div>
+                  <p class="heading-kicker">云存储</p>
+                  <h2 id="storage-title">我的文件库</h2>
+                </div>
+                <button class="icon-button" type="button" id="files-refresh" aria-label="刷新文件列表" title="刷新">
+                  <i data-lucide="refresh-cw"></i>
+                </button>
+              </div>
+              <div class="storage-usage">
+                <div class="storage-usage-row">
+                  <span id="storage-used">0 B / 100 MB</span>
+                  <span id="storage-files-count">0 个文件</span>
+                </div>
+                <div class="xp-bar"><div class="xp-bar-fill storage-fill" id="storage-fill" style="width:0%"></div></div>
+                <p class="xp-note" id="storage-level-note">每提升 1 级境界，容量 +100MB，最高 1GB</p>
+              </div>
+              <input type="file" id="file-input" hidden />
+              <button class="primary-button" type="button" id="upload-button">
+                <i data-lucide="upload"></i><span>上传文件</span>
+              </button>
+              <div class="upload-progress" id="upload-progress" hidden>
+                <p class="xp-note" id="upload-name"></p>
+                <div class="xp-bar"><div class="xp-bar-fill" id="upload-progress-fill" style="width:0%"></div></div>
+              </div>
+              <div id="file-list" class="file-list"></div>
+            </section>
           </div>
         </section>
 
@@ -1007,6 +1053,6 @@
     <script src="assets/vendor/lucide.min.js"></script>
     <script src="assets/vendor/marked.umd.js"></script>
     <script src="assets/vendor/purify.min.js"></script>
-    <script src="script.js?v=20260910-nav"></script>
+    <script src="script.js?v=20260911-storage"></script>
   </body>
 </html>
