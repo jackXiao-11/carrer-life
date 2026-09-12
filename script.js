@@ -251,6 +251,10 @@ const elements = {
   svDepositAmount: document.querySelector("#sv-deposit-amount"),
   svDepositNote: document.querySelector("#sv-deposit-note"),
   svDepositList: document.querySelector("#sv-deposit-list"),
+  feedbackForm: document.querySelector("#feedback-form"),
+  feedbackType: document.querySelector("#feedback-type"),
+  feedbackContent: document.querySelector("#feedback-content"),
+  feedbackList: document.querySelector("#feedback-list"),
   brandAvatar: document.querySelector("#brand-avatar"),
   brandIcon: document.querySelector("#brand-icon"),
   sidebarAvatar: document.querySelector("#sidebar-avatar"),
@@ -419,6 +423,8 @@ function bindEvents() {
   elements.svEventList?.addEventListener("click", handleSavingsEventDelete);
   elements.svDepositForm?.addEventListener("submit", saveSavingsDeposit);
   elements.svDepositList?.addEventListener("click", handleSavingsDepositDelete);
+  elements.feedbackForm?.addEventListener("submit", submitFeedback);
+  elements.feedbackList?.addEventListener("click", handleFeedbackAdminAction);
   elements.filesRefresh?.addEventListener("click", loadFiles);
   elements.uploadButton?.addEventListener("click", () => elements.fileInput?.click());
   elements.fileInput?.addEventListener("change", handleFileSelect);
@@ -557,6 +563,7 @@ function switchView(viewName) {
   if (viewName === "savings") renderSavings();
   if (viewName === "workspace") loadWorkspace();
   if (viewName === "plaza") loadLeaderboard();
+  if (viewName === "plaza") loadFeedback();
   const targetHash = `#${viewName}`;
   if (window.location.hash !== targetHash) {
     if (viewName !== "dashboard" && currentView === "dashboard") {
@@ -1682,6 +1689,90 @@ function openProfileDialog(entry) {
       : '<p class="plaza-hint" style="justify-self:center">这是你自己，继续加油修行！</p>'}`;
   if (!elements.profileDialog.open) elements.profileDialog.showModal();
   refreshIcons();
+}
+
+const feedbackTypeLabels = { feature: "功能建议", bug: "问题反馈", ux: "体验优化", other: "其他" };
+const feedbackStatusLabels = { pending: "待处理", processing: "处理中", done: "已完成", rejected: "不采纳" };
+let feedbackCache = { isAdmin: false, feedback: [] };
+
+async function loadFeedback() {
+  if (!elements.feedbackList || !accountUser) return;
+  try {
+    const { ok, data } = await apiJson("/api/feedback");
+    if (!ok) return;
+    feedbackCache = { isAdmin: !!data.isAdmin, feedback: data.feedback || [] };
+    renderFeedback();
+  } catch {
+    elements.feedbackList.innerHTML = '<p class="feedback-empty">建议列表暂时无法加载。</p>';
+  }
+}
+
+function renderFeedback() {
+  if (!elements.feedbackList) return;
+  const { isAdmin, feedback } = feedbackCache;
+  if (!feedback.length) {
+    elements.feedbackList.innerHTML = '<p class="feedback-empty">还没有建议。第一个写下想法的人就是你！</p>';
+    return;
+  }
+  elements.feedbackList.innerHTML = feedback.map((item) => `
+    <article class="feedback-item" data-fb-id="${item.id}">
+      <div class="feedback-item-head">
+        <span class="feedback-type-tag">${feedbackTypeLabels[item.type] || "其他"}</span>
+        <span class="feedback-status ${item.status}">${feedbackStatusLabels[item.status] || item.status}</span>
+        <time class="feedback-author">${formatDate(new Date(item.createdAt).toISOString().slice(0, 10))}${isAdmin && !item.mine ? ` · ${escapeHtml(item.authorName)}` : ""}</time>
+      </div>
+      <p class="feedback-content">${escapeHtml(item.content)}</p>
+      ${item.reply ? `<p class="feedback-reply"><strong>站长回复：</strong>${escapeHtml(item.reply)}</p>` : ""}
+      ${isAdmin ? `
+        <div class="feedback-admin-row">
+          ${["pending", "processing", "done", "rejected"].map((status) => `
+            <button class="mini-button ${item.status === status ? "active" : ""}" type="button" data-fb-status="${status}">${feedbackStatusLabels[status]}</button>`).join("")}
+        </div>
+        <input class="feedback-reply-input" type="text" maxlength="500" placeholder="回复这条建议…" value="${escapeHtml(item.reply || "")}" data-fb-reply />
+        <button class="mini-button" type="button" data-fb-save>保存回复</button>` : ""}
+    </article>`).join("");
+}
+
+async function submitFeedback(event) {
+  event.preventDefault();
+  if (!accountUser) return showToast("请先登录后再提交建议。");
+  const content = elements.feedbackContent?.value.trim();
+  if (!content || content.length < 5) return showToast("建议内容至少 5 个字。");
+  const button = elements.feedbackForm?.querySelector("button[type='submit']");
+  if (button) button.disabled = true;
+  try {
+    const { ok, data } = await apiJson("/api/feedback", {
+      method: "POST",
+      body: { type: elements.feedbackType?.value || "feature", content },
+    });
+    if (!ok) throw new Error(data.error || "提交失败，请稍后再试。");
+    elements.feedbackContent.value = "";
+    showToast("建议已送达站长，感谢反馈！");
+    await loadFeedback();
+  } catch (error) {
+    showToast(error.message || "提交失败");
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+async function handleFeedbackAdminAction(event) {
+  const statusButton = event.target.closest("[data-fb-status]");
+  const saveButton = event.target.closest("[data-fb-save]");
+  if (!statusButton && !saveButton) return;
+  const item = event.target.closest("[data-fb-id]");
+  if (!item) return;
+  const body = {};
+  if (statusButton) body.status = statusButton.dataset.fbStatus;
+  if (saveButton) body.reply = item.querySelector("[data-fb-reply]")?.value ?? "";
+  try {
+    const { ok, data } = await apiJson(`/api/feedback/${item.dataset.fbId}`, { method: "PATCH", body });
+    if (!ok) throw new Error(data.error || "更新失败。");
+    showToast(data.message || "已更新");
+    await loadFeedback();
+  } catch (error) {
+    showToast(error.message || "更新失败");
+  }
 }
 
 function restoreView() {

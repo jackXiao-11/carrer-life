@@ -375,6 +375,28 @@
       .sv-chart-legend i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:5px}
       .sv-empty{margin:0;color:var(--text-muted);font-size:13px}
       @media(max-width:900px){.savings-grid{grid-template-columns:1fr}.sv-event-form{grid-template-columns:repeat(2,minmax(0,1fr))}}
+      /* ---------- 建议反馈 ---------- */
+      .feedback-card{max-width:720px;margin:20px auto 0;padding:24px;border:1px solid var(--border);border-radius:18px;background:var(--surface,#fff);display:grid;gap:14px}
+      .feedback-form{display:grid;grid-template-columns:130px minmax(0,1fr) auto;gap:8px;align-items:center}
+      .feedback-form select,.feedback-form input{min-height:42px;padding:0 12px;border:1px solid var(--border);border-radius:10px;font:inherit;font-size:14px;background:#fff}
+      .feedback-form input:focus,.feedback-form select:focus{outline:3px solid var(--focus-ring,rgba(26,100,123,.18));border-color:var(--brand,#1a647b)}
+      .feedback-list{display:grid;gap:10px;max-height:420px;overflow-y:auto}
+      .feedback-item{display:grid;gap:8px;padding:14px;border:1px solid var(--border);border-radius:14px;background:#fff}
+      .feedback-item-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+      .feedback-type-tag{padding:2px 9px;border:1px solid var(--border);border-radius:999px;font-size:10px;font-weight:700;color:var(--text-secondary)}
+      .feedback-status{padding:2px 9px;border-radius:999px;font-size:10px;font-weight:800}
+      .feedback-status.pending{background:rgba(245,158,11,.12);color:#b45309}
+      .feedback-status.processing{background:rgba(59,130,246,.12);color:#1d4ed8}
+      .feedback-status.done{background:rgba(16,185,129,.12);color:#047857}
+      .feedback-status.rejected{background:rgba(100,116,139,.14);color:#475569}
+      .feedback-author{margin-left:auto;font-size:11px;color:var(--text-muted)}
+      .feedback-content{margin:0;font-size:13px;line-height:1.7;color:var(--text-primary);white-space:pre-wrap;word-break:break-word}
+      .feedback-reply{margin:0;padding:10px 12px;border-left:3px solid var(--brand,#1a647b);border-radius:0 10px 10px 0;background:var(--brand-soft,#f4f7f9);font-size:13px;line-height:1.6;color:var(--text-secondary)}
+      .feedback-admin-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+      .feedback-admin-row .mini-button.active{background:var(--brand-soft,#eef4f6);border-color:var(--brand,#1a647b);color:var(--brand,#1a647b)}
+      .feedback-reply-input{width:100%;min-height:38px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;font:inherit;font-size:13px;background:#fff}
+      .feedback-empty{margin:0;color:var(--text-muted);font-size:13px}
+      @media(max-width:700px){.feedback-form{grid-template-columns:1fr}}
       .fit-bar-label{font-size:11px;color:var(--text-muted);white-space:nowrap}
     </style>
   </head>
@@ -1125,6 +1147,27 @@
             <div id="my-rank-card" class="my-rank" hidden></div>
             <div class="leaderboard" id="leaderboard-list"></div>
           </div>
+        <section class="feedback-card" aria-labelledby="feedback-title">
+          <div class="fitness-card-head">
+            <div>
+              <p class="heading-kicker">建议反馈</p>
+              <h2 id="feedback-title">修改建议</h2>
+            </div>
+          </div>
+          <p class="plaza-hint">你的建议会直达站长：哪里不好用、想加什么功能，尽管写。</p>
+          <form id="feedback-form" class="feedback-form">
+            <select id="feedback-type" aria-label="建议类型">
+              <option value="feature">功能建议</option>
+              <option value="bug">问题反馈</option>
+              <option value="ux">体验优化</option>
+              <option value="other">其他</option>
+            </select>
+            <input type="text" id="feedback-content" maxlength="500" placeholder="写下你的建议（5-500 字）…" required />
+            <button class="primary-button" type="submit"><i data-lucide="send"></i><span>提交</span></button>
+          </form>
+          <div id="feedback-list" class="feedback-list"></div>
+        </section>
+
         </section>
 
         <footer class="site-footer" aria-label="版权信息">
@@ -1473,6 +1516,6 @@
     <script src="assets/vendor/lucide.min.js"></script>
     <script src="assets/vendor/marked.umd.js"></script>
     <script src="assets/vendor/purify.min.js"></script>
-    <script src="script.js?v=20260912-opt"></script>
+    <script src="script.js?v=20260912-feedback"></script>
   </body>
 </html>
