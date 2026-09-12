@@ -309,6 +309,9 @@ function initialize() {
     weekday: "long",
   }).format(new Date());
   document.querySelector("#record-date").value = today;
+  document.querySelector("#body-date").value = today;
+  document.querySelector("#workout-date").value = today;
+  fillSavingsForm();
   document.querySelectorAll(".nav-item").forEach((button) => {
     const label = button.querySelector("span")?.textContent.trim();
     if (label) {
@@ -2627,9 +2630,6 @@ function saveRecord(event) {
   persist();
   elements.recordForm.reset();
   document.querySelector("#record-date").value = today;
-  document.querySelector("#body-date").value = today;
-  document.querySelector("#workout-date").value = today;
-  fillSavingsForm();
   renderRecords();
   showToast("工作记录已保存");
 }
