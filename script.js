@@ -55,6 +55,7 @@ let accountMode = "login";
 let profileCache = null;
 let friendsCache = { friends: [], incoming: [], outgoing: [] };
 let currentView = "dashboard";
+let leaderboardEntries = [];
 
 /* ---------- 网络请求辅助 ----------
  * 统一封装 fetch + JSON 解析，所有新接口调用都请用它，避免重复样板。
@@ -172,6 +173,12 @@ const elements = {
   leaderboardList: document.querySelector("#leaderboard-list"),
   leaderboardRefresh: document.querySelector("#leaderboard-refresh"),
   myRankCard: document.querySelector("#my-rank-card"),
+  statCultivators: document.querySelector("#stat-cultivators"),
+  statTodayCheckins: document.querySelector("#stat-today-checkins"),
+  statTotalXp: document.querySelector("#stat-total-xp"),
+  statFileCount: document.querySelector("#stat-file-count"),
+  profileDialog: document.querySelector("#profile-dialog"),
+  profileDialogBody: document.querySelector("#profile-dialog-body"),
   brandAvatar: document.querySelector("#brand-avatar"),
   brandIcon: document.querySelector("#brand-icon"),
   sidebarAvatar: document.querySelector("#sidebar-avatar"),
@@ -316,6 +323,9 @@ function bindEvents() {
   elements.collabList?.addEventListener("change", handleCollabToggle);
   elements.collabList?.addEventListener("click", handleCollabDelete);
   elements.leaderboardRefresh?.addEventListener("click", loadLeaderboard);
+  elements.leaderboardList?.addEventListener("click", handleLeaderboardClick);
+  document.querySelector("#close-profile-button")?.addEventListener("click", () => elements.profileDialog?.close());
+  elements.profileDialogBody?.addEventListener("click", handleLeaderboardClick);
   elements.filesRefresh?.addEventListener("click", loadFiles);
   elements.uploadButton?.addEventListener("click", () => elements.fileInput?.click());
   elements.fileInput?.addEventListener("change", handleFileSelect);
@@ -1440,20 +1450,22 @@ async function loadLeaderboard() {
     const { ok, data } = await apiJson("/api/leaderboard", { cache: "no-store" });
     if (!ok) throw new Error("load failed");
     const entries = data.entries || [];
+    leaderboardEntries = entries;
+    renderPlazaStats(data.stats || {});
     if (!entries.length) {
       elements.leaderboardList.innerHTML = '<p class="plaza-empty">榜上还没有修行者，签到和完成任务即可上榜。</p>';
       return;
     }
-    const avatarOf = (entry) => entry.avatar
-      ? `<img src="${entry.avatar}" alt="${escapeHtml(entry.displayName)}的头像" />`
-      : escapeHtml((entry.displayName || "无").slice(0, 1));
+    const avatarOf = plazaAvatarOf;
+    const worshipOf = (entry) => `<button class="worship-button" type="button" data-worship-id="${entry.userId}" aria-label="膜拜${escapeHtml(entry.displayName)}">🙇 ${entry.worships}</button>`;
     const spot = (entry, position) => entry ? `
       <div class="podium-spot ${position}">
         <span class="podium-rank">NO.${entry.rank}</span>
         <span class="podium-avatar">${avatarOf(entry)}</span>
-        <span class="podium-name">${escapeHtml(entry.displayName)}${entry.isAdmin ? '<span class="admin-badge">👑 站长</span>' : ""}</span>
+        <span class="podium-name lb-click" data-profile-id="${entry.userId}">${escapeHtml(entry.displayName)}${entry.isAdmin ? '<span class="admin-badge">👑 站长</span>' : ""}</span>
         <span class="level-pill">Lv.${entry.level} ${escapeHtml(entry.levelName)}</span>
         <span class="podium-xp">${entry.xp} XP</span>
+        ${worshipOf(entry)}
       </div>` : '<div class="podium-spot" aria-hidden="true"></div>';
     const podium = `
       <div class="podium">
@@ -1467,9 +1479,10 @@ async function loadLeaderboard() {
         ${rest.map((entry) => `
           <li>
             <span class="rank-badge">${entry.rank}</span>
-            <span class="lb-name">${escapeHtml(entry.displayName)}${entry.isAdmin ? '<span class="admin-badge">👑 站长</span>' : ""}</span>
+            <span class="lb-name lb-click" data-profile-id="${entry.userId}">${escapeHtml(entry.displayName)}${entry.isAdmin ? '<span class="admin-badge">👑 站长</span>' : ""}</span>
             <span class="level-pill">Lv.${entry.level} ${escapeHtml(entry.levelName)}</span>
             <span class="lb-xp">${entry.xp} XP</span>
+            ${worshipOf(entry)}
           </li>`).join("")}
       </ol>` : "";
     elements.leaderboardList.innerHTML = podium + restList;
@@ -1482,6 +1495,75 @@ async function loadLeaderboard() {
   } catch {
     elements.leaderboardList.innerHTML = '<p class="plaza-empty">排行榜暂时无法加载，请稍后刷新。</p>';
   }
+}
+
+function plazaAvatarOf(entry) {
+  return entry.avatar
+    ? `<img src="${entry.avatar}" alt="${escapeHtml(entry.displayName)}的头像" />`
+    : escapeHtml((entry.displayName || "无").slice(0, 1));
+}
+
+function renderPlazaStats(stats) {
+  if (elements.statCultivators) elements.statCultivators.textContent = stats.cultivators || 0;
+  if (elements.statTodayCheckins) elements.statTodayCheckins.textContent = stats.todayCheckins || 0;
+  if (elements.statTotalXp) elements.statTotalXp.textContent = Number(stats.totalXp || 0).toLocaleString("zh-CN");
+  if (elements.statFileCount) elements.statFileCount.textContent = stats.fileCount || 0;
+}
+
+function handleLeaderboardClick(event) {
+  const worshipButton = event.target.closest("[data-worship-id]");
+  if (worshipButton) {
+    worshipUser(worshipButton.dataset.worshipId, worshipButton);
+    return;
+  }
+  const nameCard = event.target.closest("[data-profile-id]");
+  if (!nameCard) return;
+  const entry = leaderboardEntries.find((item) => item.userId === nameCard.dataset.profileId);
+  if (entry) openProfileDialog(entry);
+}
+
+async function worshipUser(targetId, button) {
+  if (!accountUser) return showToast("登录后才能膜拜大佬。");
+  if (button) button.disabled = true;
+  try {
+    const { ok, data } = await apiJson("/api/worship", { method: "POST", body: { targetId } });
+    if (!ok) throw new Error(data.error || "膜拜失败。");
+    showToast(data.message || "膜拜成功");
+    if (button) {
+      document.querySelectorAll(`[data-worship-id="${targetId}"]`).forEach((element) => {
+        element.textContent = `🙇 ${data.count}`;
+        element.disabled = true;
+      });
+    }
+  } catch (error) {
+    showToast(error.message || "膜拜失败");
+    if (button) button.disabled = false;
+  }
+}
+
+function openProfileDialog(entry) {
+  if (!elements.profileDialog || !entry) return;
+  const joined = entry.createdAt ? new Date(entry.createdAt).toISOString().slice(0, 10) : "未知";
+  elements.profileDialogBody.innerHTML = `
+    <div class="profile-top">
+      <span class="profile-avatar">${plazaAvatarOf(entry)}</span>
+      <div>
+        <h2 class="profile-name" id="profile-dialog-name">${escapeHtml(entry.displayName)}${entry.isAdmin ? '<span class="admin-badge">👑 站长</span>' : ""}</h2>
+        <p class="profile-rank">修真榜第 ${entry.rank} 名 · ${entry.checkedInToday ? "今日已签到 🔥" : "今日尚未签到"}</p>
+      </div>
+    </div>
+    <span class="level-pill big">Lv.${entry.level} ${escapeHtml(entry.levelName)}</span>
+    <div class="profile-grid">
+      <div class="profile-cell"><span>总经验</span><strong>${entry.xp} XP</strong></div>
+      <div class="profile-cell"><span>连续签到</span><strong>${entry.streak} 天</strong></div>
+      <div class="profile-cell"><span>被膜拜</span><strong>${entry.worships} 次</strong></div>
+      <div class="profile-cell"><span>入门日期</span><strong>${joined}</strong></div>
+    </div>
+    ${accountUser && accountUser.id !== entry.userId
+      ? `<button class="worship-button" type="button" data-worship-id="${entry.userId}" style="justify-self:center">🙇 膜拜大佬</button>`
+      : '<p class="plaza-hint" style="justify-self:center">这是你自己，继续加油修行！</p>'}`;
+  if (!elements.profileDialog.open) elements.profileDialog.showModal();
+  refreshIcons();
 }
 
 function restoreView() {
