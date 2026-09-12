@@ -1,9 +1,13 @@
-import { createSession, json, methodNotAllowed, readJson, sameOrigin, sessionCookie, hashPassword } from "../_lib.js";
+import { allowDbRequest, createSession, json, methodNotAllowed, readJson, sameOrigin, sessionCookie, hashPassword } from "../_lib.js";
 
 export async function onRequestPost(context) {
   try {
-    const { request, env } = context;
-    if (!sameOrigin(request)) return json({ error: "不允许从其他网站调用此接口。" }, 403);
+  const { request, env } = context;
+  if (!sameOrigin(request)) return json({ error: "不允许从其他网站调用此接口。" }, 403);
+  const clientIp = request.headers.get("CF-Connecting-IP") || "unknown";
+  if (!(await allowDbRequest(env, `register:${clientIp}`, 5, 60_000))) {
+    return json({ error: "注册请求过于频繁，请一分钟后再试。" }, 429);
+  }
     if (!env.DB) return json({ error: "账户服务尚未配置，请稍后再试。" }, 503);
     const parsed = await readJson(request, 12_000);
     if (parsed.error) return json({ error: parsed.error }, 400);

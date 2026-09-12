@@ -4,6 +4,45 @@ const MAX_JSON_BYTES = 1_000_000;
 // 超级管理员（站长）邮箱：3GB 存储特权 + 排行榜徽章，全局唯一定义处。
 const ADMIN_EMAIL = "2435726542@qq.com";
 
+// 基于 IP 的内存限流（每个 Worker 实例独立，足以显著提高爆破成本）。
+const RATE_WINDOWS = new Map();
+
+export function allowIpRequest(clientId, key, limit, windowMs) {
+  const mapKey = `${key}:${clientId}`;
+  const now = Date.now();
+  const entry = RATE_WINDOWS.get(mapKey) || { count: 0, reset: now + windowMs };
+  if (now > entry.reset) {
+    entry.count = 0;
+    entry.reset = now + windowMs;
+  }
+  entry.count += 1;
+  RATE_WINDOWS.set(mapKey, entry);
+  if (RATE_WINDOWS.size > 10000) {
+    for (const [existingKey, existing] of RATE_WINDOWS) {
+      if (now > existing.reset) RATE_WINDOWS.delete(existingKey);
+    }
+  }
+  return entry.count <= limit;
+}
+
+// D1 持久化限流：跨 Worker 实例共享计数，适合登录等关键防线。
+export async function allowDbRequest(env, key, limit, windowMs) {
+  if (!env.DB) return true;
+  const now = Date.now();
+  const resetAt = now + windowMs;
+  const row = await env.DB.prepare(
+    `INSERT INTO rate_limits (key, count, reset_at) VALUES (?, 1, ?)
+     ON CONFLICT(key) DO UPDATE SET
+       count = CASE WHEN rate_limits.reset_at < ? THEN 1 ELSE rate_limits.count + 1 END,
+       reset_at = CASE WHEN rate_limits.reset_at < ? THEN ? ELSE rate_limits.reset_at END
+     RETURNING count`,
+  ).bind(key, resetAt, now, now, resetAt).first();
+  if (Math.random() < 0.02) {
+    await env.DB.prepare("DELETE FROM rate_limits WHERE reset_at < ?").bind(now).run();
+  }
+  return (Number(row?.count) || 0) <= limit;
+}
+
 export function json(data, status = 200, headers = {}) {
   return new Response(JSON.stringify(data), {
     status,

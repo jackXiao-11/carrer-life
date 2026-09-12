@@ -1,8 +1,12 @@
-import { createSession, json, methodNotAllowed, readJson, sameOrigin, sessionCookie, verifyPassword } from "../_lib.js";
+import { allowDbRequest, createSession, json, methodNotAllowed, readJson, sameOrigin, sessionCookie, verifyPassword } from "../_lib.js";
 
 export async function onRequestPost(context) {
   const { request, env } = context;
   if (!sameOrigin(request)) return json({ error: "不允许从其他网站调用此接口。" }, 403);
+  const clientIp = request.headers.get("CF-Connecting-IP") || "unknown";
+  if (!(await allowDbRequest(env, `login:${clientIp}`, 10, 60_000))) {
+    return json({ error: "登录尝试过于频繁，请一分钟后再试。" }, 429);
+  }
   if (!env.DB) return json({ error: "账户服务尚未配置，请稍后再试。" }, 503);
   const parsed = await readJson(request, 12_000);
   if (parsed.error) return json({ error: parsed.error }, 400);
@@ -11,12 +15,18 @@ export async function onRequestPost(context) {
   if (!email || !password || email.length > 160 || password.length > 128) {
     return json({ error: "邮箱或密码不正确。" }, 400);
   }
+  if (!(await allowDbRequest(env, `login-email:${email}`, 10, 60_000))) {
+    return json({ error: "该账号登录尝试过于频繁，请一分钟后再试。" }, 429);
+  }
   const account = await env.DB.prepare(
     "SELECT id, email, password_hash, password_salt FROM accounts WHERE email = ? LIMIT 1",
   ).bind(email).first();
   if (!account || !(await verifyPassword(password, account.password_salt, account.password_hash))) {
     return json({ error: "邮箱或密码不正确。" }, 401);
   }
+  // 顺手清理该账号已过期的会话，避免残留
+  await env.DB.prepare("DELETE FROM sessions WHERE user_id = ? AND expires_at < ?")
+    .bind(account.id, Date.now()).run();
   const token = await createSession(env, account.id);
   return json({ user: { id: account.id, email: account.email } }, 200, { "Set-Cookie": sessionCookie(request, token) });
 }
