@@ -27,6 +27,7 @@ const viewTitles = {
   dashboard: "专注今天，从容前行。",
   plans: "让每一天，都有所积累。",
   records: "记录工作，也记录成长。",
+  fitness: "身体是修行的本钱。",
   workspace: "修行之路，始于足下。",
   plaza: "各自修行，看看同行的人。",
 };
@@ -73,6 +74,23 @@ async function apiJson(path, { method = "GET", body = null, cache = "default" } 
   const data = await response.json().catch(() => ({}));
   return { ok: response.ok, status: response.status, data };
 }
+
+const EXERCISE_LIBRARY = {
+  chest: { label: "胸", moves: ["杠铃卧推", "上斜卧推", "哑铃卧推", "哑铃飞鸟", "俯卧撑", "双杠臂屈伸"] },
+  back: { label: "背", moves: ["引体向上", "硬拉", "杠铃划船", "坐姿划船", "高位下拉", "直臂下压"] },
+  legs: { label: "腿", moves: ["深蹲", "腿举", "罗马尼亚硬拉", "腿弯举", "腿屈伸", "弓步蹲", "提踵"] },
+  shoulders: { label: "肩", moves: ["站姿推举", "哑铃侧平举", "哑铃前平举", "俯身飞鸟", "面拉"] },
+  arms: { label: "手臂", moves: ["杠铃弯举", "哑铃弯举", "锤式弯举", "绳索下压", "仰卧臂屈伸"] },
+  core: { label: "核心", moves: ["平板支撑", "卷腹", "悬垂举腿", "俄罗斯转体", "健腹轮"] },
+};
+
+const fitnessCategoryLabels = {
+  chest: "胸", back: "背", legs: "腿", shoulders: "肩", arms: "手臂", core: "核心", cardio: "有氧",
+};
+
+const workoutTypeLabels = { strength: "力量", cardio: "有氧" };
+
+let workoutDraft = { exercises: [] };
 
 const CULTIVATION_LEVELS = [
   { level: 1, name: "凡人", xp: 0 },
@@ -179,6 +197,34 @@ const elements = {
   statFileCount: document.querySelector("#stat-file-count"),
   profileDialog: document.querySelector("#profile-dialog"),
   profileDialogBody: document.querySelector("#profile-dialog-body"),
+  openWorkoutButton: document.querySelector("#open-workout-button"),
+  workoutDialog: document.querySelector("#workout-dialog"),
+  workoutForm: document.querySelector("#workout-form"),
+  workoutDate: document.querySelector("#workout-date"),
+  workoutType: document.querySelector("#workout-type"),
+  workoutDuration: document.querySelector("#workout-duration"),
+  exerciseList: document.querySelector("#exercise-list"),
+  cardioBlock: document.querySelector("#cardio-block"),
+  cardioName: document.querySelector("#cardio-name"),
+  cardioDistance: document.querySelector("#cardio-distance"),
+  cardioCalories: document.querySelector("#cardio-calories"),
+  workoutNote: document.querySelector("#workout-note"),
+  workoutList: document.querySelector("#workout-list"),
+  bodyForm: document.querySelector("#body-form"),
+  bodyDate: document.querySelector("#body-date"),
+  bodyWeight: document.querySelector("#body-weight"),
+  bodyChest: document.querySelector("#body-chest"),
+  bodyWaist: document.querySelector("#body-waist"),
+  bodyArm: document.querySelector("#body-arm"),
+  weightChart: document.querySelector("#weight-chart"),
+  bodyLogList: document.querySelector("#body-log-list"),
+  fitWeekCount: document.querySelector("#fit-week-count"),
+  fitWeekMinutes: document.querySelector("#fit-week-minutes"),
+  fitLatestWeight: document.querySelector("#fit-latest-weight"),
+  fitMonthSets: document.querySelector("#fit-month-sets"),
+  fitDonut: document.querySelector("#fit-donut"),
+  fitDonutCenter: document.querySelector("#fit-donut-center"),
+  fitDonutLegend: document.querySelector("#fit-donut-legend"),
   brandAvatar: document.querySelector("#brand-avatar"),
   brandIcon: document.querySelector("#brand-icon"),
   sidebarAvatar: document.querySelector("#sidebar-avatar"),
@@ -326,6 +372,16 @@ function bindEvents() {
   elements.leaderboardList?.addEventListener("click", handleLeaderboardClick);
   document.querySelector("#close-profile-button")?.addEventListener("click", () => elements.profileDialog?.close());
   elements.profileDialogBody?.addEventListener("click", handleLeaderboardClick);
+  elements.openWorkoutButton?.addEventListener("click", () => openWorkoutDialog());
+  document.querySelector("#close-workout-button")?.addEventListener("click", closeWorkoutDialog);
+  document.querySelector("#cancel-workout-button")?.addEventListener("click", closeWorkoutDialog);
+  elements.workoutForm?.addEventListener("submit", saveWorkout);
+  elements.workoutType?.addEventListener("change", syncWorkoutTypeBlocks);
+  document.querySelector("#add-exercise-button")?.addEventListener("click", () => addExerciseRow());
+  elements.exerciseList?.addEventListener("click", handleExerciseListClick);
+  elements.exerciseList?.addEventListener("change", handleExerciseSelectChange);
+  elements.workoutList?.addEventListener("click", handleWorkoutDelete);
+  elements.bodyForm?.addEventListener("submit", saveBodyLog);
   elements.filesRefresh?.addEventListener("click", loadFiles);
   elements.uploadButton?.addEventListener("click", () => elements.fileInput?.click());
   elements.fileInput?.addEventListener("change", handleFileSelect);
@@ -445,6 +501,7 @@ function switchView(viewName) {
     dashboard: "今日概览",
     plans: "学习计划",
     records: "工作记录",
+    fitness: "健身",
     workspace: "个人工作空间",
     plaza: "广场",
   }[viewName];
@@ -452,10 +509,12 @@ function switchView(viewName) {
     dashboard: "把时间留给重要的事。",
     plans: "软件能力与英语，一起向前。",
     records: "每一个解决的问题，都值得留下。",
+    fitness: "记录每一次发力。",
     workspace: "签到、修行、结伴同行。",
     plaza: "排行榜，偶尔看看就好。",
   }[viewName];
-  elements.addTaskButton.hidden = viewName === "records" || viewName === "workspace" || viewName === "plaza";
+  elements.addTaskButton.hidden = viewName === "records" || viewName === "workspace" || viewName === "plaza" || viewName === "fitness";
+  if (viewName === "fitness") renderFitness();
   if (viewName === "workspace") loadWorkspace();
   if (viewName === "plaza") loadLeaderboard();
   const targetHash = `#${viewName}`;
@@ -645,6 +704,10 @@ function mergeAccountState(local, remote) {
     tasks: mergeList(local?.tasks, remote?.tasks),
     records: mergeList(local?.records, remote?.records),
     words: mergeWords(local?.words, remote?.words),
+    fitness: {
+      workouts: mergeList(local?.fitness?.workouts, remote?.fitness?.workouts),
+      bodyLogs: mergeList(local?.fitness?.bodyLogs, remote?.fitness?.bodyLogs),
+    },
   };
 }
 
@@ -2418,6 +2481,8 @@ function saveRecord(event) {
   persist();
   elements.recordForm.reset();
   document.querySelector("#record-date").value = today;
+  document.querySelector("#body-date").value = today;
+  document.querySelector("#workout-date").value = today;
   renderRecords();
   showToast("工作记录已保存");
 }
@@ -2433,7 +2498,332 @@ function deleteRecord(event) {
   showToast("记录已删除");
 }
 
-/* ================= 16. 页面渲染 =================
+/* ================= 16. 健身专区 =================
+ * 训练记录（力量/有氧）+ 身体数据 + 图表；保存训练计入任务经验。 */
+function normalizeFitness(data) {
+  const source = data && typeof data === "object" ? data : {};
+  return {
+    workouts: Array.isArray(source.workouts) ? source.workouts : [],
+    bodyLogs: Array.isArray(source.bodyLogs) ? source.bodyLogs : [],
+  };
+}
+
+function fitnessOf() {
+  if (!state.fitness) state.fitness = normalizeFitness();
+  return state.fitness;
+}
+
+function renderFitness() {
+  renderFitnessStats();
+  renderWorkoutList();
+  renderWeightChart();
+  renderBodyLogs();
+  refreshIcons();
+}
+
+function renderFitnessStats() {
+  const { workouts, bodyLogs } = fitnessOf();
+  const sevenDaysAgo = Date.now() - 7 * 86400 * 1000;
+  const week = workouts.filter((workout) => new Date(`${workout.date}T00:00:00`).getTime() >= sevenDaysAgo);
+  if (elements.fitWeekCount) elements.fitWeekCount.textContent = `${week.length} 次`;
+  if (elements.fitWeekMinutes) {
+    elements.fitWeekMinutes.textContent = `${week.reduce((total, workout) => total + (Number(workout.duration) || 0), 0)} 分钟`;
+  }
+  const latest = [...bodyLogs].sort((a, b) => (a.date < b.date ? 1 : -1))[0];
+  if (elements.fitLatestWeight) elements.fitLatestWeight.textContent = latest ? `${latest.weight} kg` : "— kg";
+  const thirtyDaysAgo = Date.now() - 30 * 86400 * 1000;
+  const monthSets = workouts
+    .filter((workout) => workout.type === "strength" && new Date(`${workout.date}T00:00:00`).getTime() >= thirtyDaysAgo)
+    .reduce((total, workout) => total + (workout.exercises || []).reduce((sum, exercise) => sum + (exercise.sets?.length || 0), 0), 0);
+  if (elements.fitMonthSets) elements.fitMonthSets.textContent = `${monthSets} 组`;
+  renderCategoryDonut(workouts.filter((workout) => new Date(`${workout.date}T00:00:00`).getTime() >= thirtyDaysAgo));
+}
+
+function renderCategoryDonut(recentWorkouts) {
+  if (!elements.fitDonut) return;
+  const counts = {};
+  let total = 0;
+  for (const workout of recentWorkouts) {
+    if (workout.type === "cardio") { counts.cardio = (counts.cardio || 0) + 1; total += 1; continue; }
+    for (const exercise of workout.exercises || []) {
+      counts[exercise.category] = (counts[exercise.category] || 0) + (exercise.sets?.length || 0);
+      total += exercise.sets?.length || 0;
+    }
+  }
+  const colors = { chest: "#2563eb", back: "#7c3aed", legs: "#f59e0b", shoulders: "#10b981", arms: "#6366f1", core: "#64748b", cardio: "#38bdf8" };
+  const segments = Object.entries(counts).filter(([, count]) => count > 0);
+  const circumference = 2 * Math.PI * 15.9155;
+  let offset = 0;
+  const circles = segments.map(([key, count]) => {
+    const length = total ? (count / total) * circumference : 0;
+    const circle = `<circle cx="21" cy="21" r="15.9155" stroke="${colors[key] || "#94a3b8"}" stroke-dasharray="${length} ${circumference - length}" stroke-dashoffset="${-offset}"></circle>`;
+    offset += length;
+    return circle;
+  });
+  elements.fitDonut.innerHTML = `<circle cx="21" cy="21" r="15.9155" stroke="#e2e8f0" stroke-dasharray="${circumference} 0"></circle>${circles.join("")}`;
+  if (elements.fitDonutCenter) elements.fitDonutCenter.textContent = total;
+  if (elements.fitDonutLegend) {
+    elements.fitDonutLegend.innerHTML = segments.length
+      ? segments.map(([key, count]) => `<span><i style="background:${colors[key] || "#94a3b8"}"></i>${fitnessCategoryLabels[key] || key} ${Math.round((count / total) * 100)}%</span>`).join("")
+      : "<span>近30天还没有训练记录</span>";
+  }
+}
+
+function workoutVolume(workout) {
+  if (workout.type !== "strength") return 0;
+  return (workout.exercises || []).reduce((total, exercise) => {
+    return total + (exercise.sets || []).reduce((sum, set) => sum + (Number(set.weight) || 0) * (Number(set.reps) || 0), 0);
+  }, 0);
+}
+
+function workoutSummary(workout) {
+  if (workout.type === "cardio") {
+    const parts = [workout.cardioName || "有氧"];
+    if (workout.distance) parts.push(`${workout.distance} km`);
+    if (workout.calories) parts.push(`${workout.calories} kcal`);
+    return parts.join(" · ");
+  }
+  const moves = (workout.exercises || []).map((exercise) => `${exercise.name}×${exercise.sets?.length || 0}组`);
+  const totalSets = (workout.exercises || []).reduce((sum, exercise) => sum + (exercise.sets?.length || 0), 0);
+  return `${moves.join("、") || "无动作"}（共 ${totalSets} 组）`;
+}
+
+function renderWorkoutList() {
+  if (!elements.workoutList) return;
+  const workouts = [...fitnessOf().workouts].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 50);
+  elements.workoutList.innerHTML = workouts.length
+    ? workouts.map((workout) => `
+      <article class="workout-item">
+        <header>
+          <time>${formatDate(workout.date)}</time>
+          <span class="workout-type-tag">${workoutTypeLabels[workout.type] || workout.type}</span>
+          <span class="workout-meta-item">${workout.duration} 分钟</span>
+          <button class="workout-del" type="button" data-delete-workout="${workout.id}" aria-label="删除训练">删除</button>
+        </header>
+        <p class="workout-summary">${escapeHtml(workoutSummary(workout))}</p>
+        <div class="workout-meta">
+          ${workout.type === "strength" && workoutVolume(workout) ? `<span>总训练量 ${workoutVolume(workout).toLocaleString("zh-CN")} kg</span>` : ""}
+          ${workout.note ? `<span>${escapeHtml(workout.note)}</span>` : ""}
+        </div>
+      </article>`).join("")
+    : '<p class="fitness-empty">还没有训练记录，点「记录训练」开始第一次吧。</p>';
+}
+
+function closeWorkoutDialog() {
+  if (elements.workoutDialog?.open) elements.workoutDialog.close();
+}
+
+function openWorkoutDialog() {
+  workoutDraft = { exercises: [] };
+  if (elements.workoutDate) elements.workoutDate.value = today;
+  if (elements.workoutDuration) elements.workoutDuration.value = 60;
+  if (elements.workoutType) elements.workoutType.value = "strength";
+  if (elements.cardioName) elements.cardioName.value = "";
+  if (elements.cardioDistance) elements.cardioDistance.value = "";
+  if (elements.cardioCalories) elements.cardioCalories.value = "";
+  if (elements.workoutNote) elements.workoutNote.value = "";
+  if (elements.exerciseList) elements.exerciseList.innerHTML = "";
+  addExerciseRow();
+  syncWorkoutTypeBlocks();
+  if (!elements.workoutDialog.open) elements.workoutDialog.showModal();
+}
+
+function syncWorkoutTypeBlocks() {
+  const isStrength = elements.workoutType?.value !== "cardio";
+  const strengthBlock = document.querySelector("#strength-block");
+  if (strengthBlock) strengthBlock.hidden = !isStrength;
+  if (elements.cardioBlock) elements.cardioBlock.hidden = isStrength;
+}
+
+function exerciseOptionsHtml(selected) {
+  return Object.entries(EXERCISE_LIBRARY).map(([key, group]) => `
+    <optgroup label="${group.label}">
+      ${group.moves.map((move) => `<option value="${move}" data-category="${key}" ${move === selected ? "selected" : ""}>${move}</option>`).join("")}
+    </optgroup>`).join("") + `<option value="__custom">＋ 自定义动作…</option>`;
+}
+
+function addExerciseRow(preset) {
+  const row = document.createElement("div");
+  row.className = "exercise-row";
+  const name = preset?.name || "杠铃卧推";
+  row.dataset.category = preset?.category || categoryOfExercise(name);
+  row.innerHTML = `
+    <div class="exercise-head">
+      <select class="exercise-select">${exerciseOptionsHtml(name)}</select>
+      <button type="button" class="mini-button" data-remove-exercise>删除动作</button>
+    </div>
+    <div class="sets-list"></div>
+    <button type="button" class="add-set-button" data-add-set>＋ 加一组</button>`;
+  elements.exerciseList.appendChild(row);
+  const setsList = row.querySelector(".sets-list");
+  (preset?.sets?.length ? preset.sets : [{ weight: "", reps: "" }]).forEach((set) => addSetRow(setsList, set));
+}
+
+function categoryOfExercise(name) {
+  for (const [key, group] of Object.entries(EXERCISE_LIBRARY)) {
+    if (group.moves.includes(name)) return key;
+  }
+  return "chest";
+}
+
+function addSetRow(setsList, preset) {
+  const row = document.createElement("div");
+  row.className = "set-row";
+  row.innerHTML = `
+    <span>${setsList.children.length + 1}</span>
+    <input type="number" class="set-weight" step="0.5" min="0" placeholder="kg" value="${preset?.weight ?? ""}" />
+    <input type="number" class="set-reps" min="0" placeholder="次" value="${preset?.reps ?? ""}" />
+    <button type="button" class="set-del" data-remove-set>删</button>`;
+  setsList.appendChild(row);
+}
+
+function handleExerciseListClick(event) {
+  const row = event.target.closest(".exercise-row");
+  if (!row) return;
+  if (event.target.closest("[data-remove-exercise]")) {
+    row.remove();
+    if (!elements.exerciseList.children.length) addExerciseRow();
+    return;
+  }
+  if (event.target.closest("[data-add-set]")) {
+    addSetRow(row.querySelector(".sets-list"));
+    return;
+  }
+  if (event.target.closest("[data-remove-set]")) {
+    const setsList = row.querySelector(".sets-list");
+    event.target.closest(".set-row").remove();
+    [...setsList.children].forEach((child, index) => { child.querySelector("span").textContent = index + 1; });
+  }
+}
+
+function handleExerciseSelectChange(event) {
+  const select = event.target.closest(".exercise-select");
+  if (!select) return;
+  const row = select.closest(".exercise-row");
+  if (select.value === "__custom") {
+    const custom = window.prompt("输入自定义动作名称：", "");
+    if (custom && custom.trim()) {
+      const option = document.createElement("option");
+      option.value = custom.trim();
+      option.textContent = custom.trim();
+      option.selected = true;
+      select.querySelector("option[value='__custom']").before(option);
+      select.value = custom.trim();
+      row.dataset.category = "chest";
+    } else {
+      select.value = select.dataset.previous || "杠铃卧推";
+    }
+    return;
+  }
+  select.dataset.previous = select.value;
+  const option = select.selectedOptions[0];
+  if (option?.dataset.category) row.dataset.category = option.dataset.category;
+}
+
+function saveWorkout(event) {
+  event.preventDefault();
+  const date = elements.workoutDate?.value;
+  const duration = Number(elements.workoutDuration?.value);
+  if (!date || !duration) return showToast("请填写日期和时长。");
+  const type = elements.workoutType?.value === "cardio" ? "cardio" : "strength";
+  const workout = { id: createId(), date, type, duration, note: elements.workoutNote?.value.trim() || "" };
+  if (type === "strength") {
+    workout.exercises = [...elements.exerciseList.querySelectorAll(".exercise-row")].map((row) => ({
+      name: row.querySelector(".exercise-select").value,
+      category: row.dataset.category || categoryOfExercise(row.querySelector(".exercise-select").value),
+      sets: [...row.querySelectorAll(".set-row")].map((set) => ({
+        weight: Number(set.querySelector(".set-weight").value) || 0,
+        reps: Number(set.querySelector(".set-reps").value) || 0,
+      })).filter((set) => set.reps > 0),
+    })).filter((exercise) => exercise.name && exercise.name !== "__custom" && exercise.sets.length);
+    if (!workout.exercises.length) return showToast("至少记录一个动作和一组有效次数。");
+  } else {
+    workout.cardioName = elements.cardioName?.value.trim() || "有氧";
+    workout.distance = Number(elements.cardioDistance?.value) || 0;
+    workout.calories = Number(elements.cardioCalories?.value) || 0;
+  }
+  fitnessOf().workouts.unshift(workout);
+  persist();
+  closeWorkoutDialog();
+  renderFitness();
+  showToast("训练已记录，经验 +10");
+  requestTaskXp("task");
+}
+
+function handleWorkoutDelete(event) {
+  const button = event.target.closest("[data-delete-workout]");
+  if (!button) return;
+  if (!window.confirm("确定删除这条训练记录吗？")) return;
+  fitnessOf().workouts = fitnessOf().workouts.filter((workout) => workout.id !== button.dataset.deleteWorkout);
+  persist();
+  renderFitness();
+  showToast("训练记录已删除");
+}
+
+function saveBodyLog(event) {
+  event.preventDefault();
+  const date = elements.bodyDate?.value;
+  const weight = Number(elements.bodyWeight?.value);
+  if (!date || !weight) return showToast("请填写日期和体重。");
+  const log = {
+    id: createId(), date, weight,
+    chest: Number(elements.bodyChest?.value) || 0,
+    waist: Number(elements.bodyWaist?.value) || 0,
+    arm: Number(elements.bodyArm?.value) || 0,
+  };
+  fitnessOf().bodyLogs = fitnessOf().bodyLogs.filter((entry) => entry.date !== date);
+  fitnessOf().bodyLogs.push(log);
+  persist();
+  elements.bodyForm.reset();
+  elements.bodyDate.value = today;
+  renderFitnessStats();
+  renderWeightChart();
+  renderBodyLogs();
+  showToast("身体数据已记录");
+}
+
+function renderWeightChart() {
+  if (!elements.weightChart) return;
+  const logs = [...fitnessOf().bodyLogs].sort((a, b) => (a.date < b.date ? -1 : 1)).slice(-14);
+  if (logs.length < 2) {
+    elements.weightChart.innerHTML = '<p class="fitness-empty">记录两次体重后，这里会出现趋势图。</p>';
+    return;
+  }
+  const values = logs.map((log) => log.weight);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = Math.max(0.1, max - min);
+  const width = 300;
+  const height = 90;
+  const points = logs.map((log, index) => {
+    const x = (index / (logs.length - 1)) * (width - 8) + 4;
+    const y = height - 8 - ((log.weight - min) / span) * (height - 20);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const delta = (values[values.length - 1] - values[0]).toFixed(1);
+  elements.weightChart.innerHTML = `
+    <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-label="体重趋势">
+      <polyline points="${points.join(" ")}" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+    <p class="chart-caption">近 ${logs.length} 次记录：${values[0]} → ${values[values.length - 1]} kg（${Number(delta) >= 0 ? "+" : ""}${delta} kg）</p>`;
+}
+
+function renderBodyLogs() {
+  if (!elements.bodyLogList) return;
+  const logs = [...fitnessOf().bodyLogs].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 10);
+  elements.bodyLogList.innerHTML = logs.length
+    ? logs.map((log) => `
+      <div class="body-log-item">
+        <time>${log.date}</time>
+        <span>${log.weight} kg</span>
+        ${log.chest ? `<span>胸 ${log.chest}</span>` : ""}
+        ${log.waist ? `<span>腰 ${log.waist}</span>` : ""}
+        ${log.arm ? `<span>臂 ${log.arm}</span>` : ""}
+      </div>`).join("")
+    : '<p class="fitness-empty">还没有身体数据。</p>';
+}
+
+/* ================= 17. 页面渲染 =================
  * 任何数据变化后调用 render() 统一刷新各列表。 */
 function render() {
   renderSummary();
@@ -2693,7 +3083,7 @@ function emptyTemplate(message) {
     </div>`;
 }
 
-/* ================= 17. 通用工具函数 ================= */
+/* ================= 18. 通用工具函数 ================= */
 function showToast(message) {
   elements.toast.textContent = message;
   elements.toast.classList.add("is-visible");
@@ -2716,6 +3106,7 @@ function loadState() {
     const stored = JSON.parse(currentData || legacyData);
     if (stored?.tasks && stored?.records) {
       stored.words = Array.isArray(stored.words) ? stored.words : [];
+      stored.fitness = normalizeFitness(stored.fitness);
       if (!currentData && legacyData) persistMigratedState(stored);
       return stored;
     }
@@ -2727,6 +3118,7 @@ function loadState() {
     tasks: [],
     records: [],
     words: [],
+    fitness: normalizeFitness(),
   };
 }
 

@@ -193,7 +193,7 @@
       }
       .workspace-nav{display:none}
       @media(max-width:767px){
-        .main-nav{grid-template-columns:repeat(5,minmax(0,1fr))}
+        .main-nav{grid-template-columns:repeat(6,minmax(0,1fr))}
         .main-nav .nav-item{font-size:11px}
         .workspace-nav{display:flex}
         .ai-nav{display:none}
@@ -269,6 +269,49 @@
       .worship-button:hover{background:var(--brand-soft,#f4f6f8)}
       .admin-badge{background:transparent;border:1px solid var(--border);color:var(--text-secondary);background-image:none}
       .profile-avatar{border-color:var(--border)}
+
+      /* ---------- 健身专区 ---------- */
+      .fitness-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;align-items:start}
+      .fitness-card{display:grid;gap:14px;padding:24px;border:1px solid var(--border);border-radius:18px;background:var(--surface,#fff)}
+      .fit-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+      .fit-stat{display:grid;gap:3px;padding:12px;border:1px solid var(--border);border-radius:10px;background:#fff}
+      .fit-stat span{font-size:11px;color:var(--text-muted)}
+      .fit-stat strong{font-size:16px;font-variant-numeric:tabular-nums}
+      .fit-donut-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+      .donut-wrap.small{width:84px;height:84px}
+      .fit-donut-center{font-size:16px}
+      .workout-list{display:grid;gap:8px;max-height:360px;overflow-y:auto}
+      .workout-item{display:grid;gap:6px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:#fff}
+      .workout-item header{display:flex;align-items:center;gap:8px}
+      .workout-item time{font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+      .workout-type-tag{padding:2px 8px;border:1px solid var(--border);border-radius:999px;font-size:10px;font-weight:700;color:var(--text-secondary)}
+      .workout-item .workout-del{margin-left:auto;padding:3px 8px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text-muted);font-size:11px;cursor:pointer}
+      .workout-item .workout-del:hover{color:var(--danger,#b42335);border-color:currentColor}
+      .workout-summary{margin:0;font-size:12px;color:var(--text-secondary);line-height:1.6}
+      .workout-meta{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--text-muted)}
+      .fitness-empty{margin:0;color:var(--text-muted);font-size:13px}
+      .body-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:end}
+      .body-form label{display:grid;gap:4px;font-size:11px;font-weight:600;color:var(--text-secondary)}
+      .body-form input{min-height:36px;padding:0 8px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:13px}
+      .weight-chart{display:grid;gap:6px}
+      .weight-chart svg{width:100%;height:110px}
+      .weight-chart .chart-caption{margin:0;font-size:11px;color:var(--text-muted)}
+      .body-log-list{display:grid;gap:6px;max-height:180px;overflow-y:auto}
+      .body-log-item{display:flex;gap:10px;font-size:12px;color:var(--text-secondary);padding:6px 10px;border:1px solid var(--border);border-radius:8px}
+      .body-log-item time{color:var(--text-muted)}
+      .workout-dialog{width:min(560px,calc(100% - 32px))}
+      .workout-dialog form{display:grid;gap:14px;padding:24px}
+      .form-row.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+      .workout-block-title{margin:0;font-size:12px;font-weight:700;color:var(--text-muted)}
+      .exercise-row{display:grid;gap:8px;padding:12px;border:1px dashed var(--border);border-radius:12px}
+      .exercise-head{display:flex;gap:8px;align-items:center}
+      .exercise-head select{flex:1;min-height:38px;padding:0 8px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:13px;background:#fff}
+      .set-row{display:grid;grid-template-columns:24px 1fr 1fr auto;gap:6px;align-items:center;font-size:12px;color:var(--text-muted)}
+      .set-row input{min-height:34px;padding:0 8px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:13px}
+      .set-row .set-del{padding:4px 8px;border:1px solid var(--border);border-radius:7px;background:transparent;color:var(--text-muted);font-size:11px;cursor:pointer}
+      .sets-list{display:grid;gap:6px}
+      .add-set-button{justify-self:start;padding:4px 10px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text-secondary);font-size:11px;cursor:pointer}
+      @media(max-width:600px){.form-row.three,.body-form{grid-template-columns:repeat(2,minmax(0,1fr))}}
     </style>
   </head>
   <body>
@@ -304,6 +347,10 @@
           <button class="nav-item" type="button" data-view="records">
             <i data-lucide="notebook-pen"></i>
             <span>工作记录</span>
+          </button>
+          <button class="nav-item" type="button" data-view="fitness">
+            <i data-lucide="dumbbell"></i>
+            <span>健身</span>
           </button>
           <button class="nav-item" type="button" data-view="plaza">
             <i data-lucide="trophy"></i>
@@ -631,6 +678,69 @@
                 <span class="record-count" id="record-count">0 条</span>
               </div>
               <div class="record-list" id="record-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section
+          class="view"
+          id="fitness-view"
+          role="region"
+          aria-labelledby="fitness-view-title"
+        >
+          <div class="fitness-grid">
+            <section class="fitness-card" aria-labelledby="fitness-stats-title">
+              <div class="section-heading compact-heading">
+                <div>
+                  <p class="heading-kicker">数据面板</p>
+                  <h2 id="fitness-stats-title">训练概览</h2>
+                </div>
+              </div>
+              <div class="fit-stats">
+                <div class="fit-stat"><span>近7天训练</span><strong id="fit-week-count">0 次</strong></div>
+                <div class="fit-stat"><span>近7天时长</span><strong id="fit-week-minutes">0 分钟</strong></div>
+                <div class="fit-stat"><span>最新体重</span><strong id="fit-latest-weight">— kg</strong></div>
+                <div class="fit-stat"><span>近30天组数</span><strong id="fit-month-sets">0 组</strong></div>
+              </div>
+              <div class="fit-donut-row">
+                <div class="donut-wrap small">
+                  <svg viewBox="0 0 42 42" class="stats-donut fit-donut" id="fit-donut" role="img" aria-label="训练部位分布"></svg>
+                  <span class="donut-center fit-donut-center" id="fit-donut-center">0</span>
+                </div>
+                <div class="donut-legend" id="fit-donut-legend"></div>
+              </div>
+            </section>
+
+            <section class="fitness-card" aria-labelledby="fitness-log-title">
+              <div class="section-heading compact-heading">
+                <div>
+                  <p class="heading-kicker">训练日志</p>
+                  <h2 id="fitness-log-title">健身记录</h2>
+                </div>
+                <button class="primary-button" type="button" id="open-workout-button">
+                  <i data-lucide="plus"></i><span>记录训练</span>
+                </button>
+              </div>
+              <div class="workout-list" id="workout-list"></div>
+            </section>
+
+            <section class="fitness-card" aria-labelledby="fitness-body-title">
+              <div class="section-heading compact-heading">
+                <div>
+                  <p class="heading-kicker">身体数据</p>
+                  <h2 id="fitness-body-title">体重与围度</h2>
+                </div>
+              </div>
+              <form class="body-form" id="body-form">
+                <label><span>日期</span><input type="date" id="body-date" required /></label>
+                <label><span>体重(kg)</span><input type="number" id="body-weight" step="0.1" min="20" max="300" required /></label>
+                <label><span>胸围(cm)</span><input type="number" id="body-chest" step="0.5" min="0" max="250" placeholder="可选" /></label>
+                <label><span>腰围(cm)</span><input type="number" id="body-waist" step="0.5" min="0" max="250" placeholder="可选" /></label>
+                <label><span>臂围(cm)</span><input type="number" id="body-arm" step="0.5" min="0" max="100" placeholder="可选" /></label>
+                <button class="secondary-button" type="submit">记录</button>
+              </form>
+              <div class="weight-chart" id="weight-chart"></div>
+              <div class="body-log-list" id="body-log-list"></div>
             </section>
           </div>
         </section>
@@ -1096,6 +1206,53 @@
       </div>
     </dialog>
 
+    <dialog class="task-dialog workout-dialog" id="workout-dialog" aria-labelledby="workout-dialog-title">
+      <div class="dialog-heading">
+        <div>
+          <p class="section-kicker">健身日志</p>
+          <h2 id="workout-dialog-title">记录训练</h2>
+        </div>
+        <button class="icon-button" id="close-workout-button" type="button" aria-label="关闭" title="关闭">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <form id="workout-form">
+        <div class="form-row three">
+          <label><span>日期</span><input type="date" id="workout-date" required /></label>
+          <label><span>类型</span>
+            <select id="workout-type">
+              <option value="strength">力量训练</option>
+              <option value="cardio">有氧运动</option>
+            </select>
+          </label>
+          <label><span>时长(分钟)</span><input type="number" id="workout-duration" min="5" max="360" step="5" value="60" required /></label>
+        </div>
+        <div id="strength-block">
+          <p class="workout-block-title">动作与组数</p>
+          <div id="exercise-list"></div>
+          <button type="button" class="secondary-button" id="add-exercise-button"><i data-lucide="plus"></i><span>添加动作</span></button>
+        </div>
+        <div id="cardio-block" hidden>
+          <div class="form-row">
+            <label><span>运动项目</span><input type="text" id="cardio-name" list="cardio-list" placeholder="跑步 / 骑行 / 游泳…" maxlength="30" /></label>
+          </div>
+          <div class="form-row">
+            <label><span>距离(公里，可选)</span><input type="number" id="cardio-distance" step="0.1" min="0" /></label>
+            <label><span>消耗(千卡，可选)</span><input type="number" id="cardio-calories" min="0" /></label>
+          </div>
+          <datalist id="cardio-list">
+            <option value="跑步"></option><option value="骑行"></option><option value="游泳"></option>
+            <option value="跳绳"></option><option value="椭圆机"></option><option value="爬楼"></option><option value="快走"></option>
+          </datalist>
+        </div>
+        <label><span>备注</span><textarea id="workout-note" rows="2" maxlength="200" placeholder="状态、感受或计划…"></textarea></label>
+        <div class="dialog-actions">
+          <button type="button" class="secondary-button" id="cancel-workout-button">取消</button>
+          <button type="submit" class="primary-button"><i data-lucide="check"></i><span>保存训练</span></button>
+        </div>
+      </form>
+    </dialog>
+
     <dialog class="task-dialog profile-dialog" id="profile-dialog" aria-labelledby="profile-dialog-name">
       <button class="icon-button profile-close" id="close-profile-button" type="button" aria-label="关闭名片" title="关闭">
         <i data-lucide="x"></i>
@@ -1108,6 +1265,6 @@
     <script src="assets/vendor/lucide.min.js"></script>
     <script src="assets/vendor/marked.umd.js"></script>
     <script src="assets/vendor/purify.min.js"></script>
-    <script src="script.js?v=20260912-plaza-copy"></script>
+    <script src="script.js?v=20260912-fitness"></script>
   </body>
 </html>

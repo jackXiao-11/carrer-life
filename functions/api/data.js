@@ -35,6 +35,14 @@ export async function onRequestPut(context) {
   if (data.words !== undefined && (!Array.isArray(data.words) || data.words.length > 2000)) {
     return json({ error: "单词数量超出限制。" }, 400);
   }
+  if (data.fitness !== undefined) {
+    const fitness = data.fitness;
+    if (!fitness || typeof fitness !== "object"
+      || !Array.isArray(fitness.workouts) || fitness.workouts.length > 2000
+      || !Array.isArray(fitness.bodyLogs) || fitness.bodyLogs.length > 2000) {
+      return json({ error: "健身数据格式不正确。" }, 400);
+    }
+  }
   const serialized = JSON.stringify(data);
   if (new TextEncoder().encode(serialized).byteLength > MAX_JSON_BYTES) return json({ error: "数据内容过大。" }, 413);
   const updatedAt = Date.now();
