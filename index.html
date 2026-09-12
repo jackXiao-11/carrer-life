@@ -324,8 +324,8 @@
       .body-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:end}
       .body-field{display:grid;gap:5px}
       .body-field label{font-size:12px;font-weight:600;color:var(--text-secondary)}
-      .body-field input{min-height:40px;padding:0 10px;border:1px solid var(--border);border-radius:10px;font:inherit;font-size:14px;background:#fff}
-      .body-field input:focus{outline:3px solid var(--focus-ring,rgba(26,100,123,.18));border-color:var(--brand,#1a647b)}
+      .body-field input,.body-field select{min-height:40px;padding:0 10px;border:1px solid var(--border);border-radius:10px;font:inherit;font-size:14px;background:#fff}
+      .body-field input:focus,.body-field select:focus{outline:3px solid var(--focus-ring,rgba(26,100,123,.18));border-color:var(--brand,#1a647b)}
       .weight-chart{display:grid;gap:8px;border:1px solid var(--border);border-radius:14px;padding:14px;background:linear-gradient(180deg,#fbfcfd,#fff)}
       .weight-chart svg{width:100%;height:130px}
       .weight-chart .chart-caption{margin:0;font-size:12px;color:var(--text-muted)}
@@ -887,11 +887,11 @@
                 </div>
                 <div class="body-field">
                   <label for="sv-deadline">截止年月</label>
-                  <input type="month" id="sv-deadline" required />
+                  <select id="sv-deadline" required></select>
                 </div>
                 <div class="body-field">
                   <label for="sv-start">开始年月</label>
-                  <input type="month" id="sv-start" required />
+                  <select id="sv-start" required></select>
                 </div>
                 <div class="body-field">
                   <label for="sv-salary">当前月薪（元）</label>
@@ -906,7 +906,7 @@
               <div class="sv-events">
                 <p class="workout-block-title">收入变化事件（跳槽涨薪 / 奖金）</p>
                 <form id="sv-event-form" class="sv-event-form">
-                  <input type="month" id="sv-event-month" required aria-label="发生月份" />
+                  <select id="sv-event-month" required aria-label="发生月份"></select>
                   <select id="sv-event-type" aria-label="类型">
                     <option value="raise">涨薪到</option>
                     <option value="bonus">奖金 +</option>
@@ -942,7 +942,7 @@
                 </div>
               </div>
               <form id="sv-deposit-form" class="sv-event-form">
-                <input type="month" id="sv-deposit-month" required aria-label="存款月份" />
+                <select id="sv-deposit-month" required aria-label="存款月份"></select>
                 <input type="number" id="sv-deposit-amount" min="0" step="100" required aria-label="存入金额（元）" placeholder="金额" />
                 <input type="text" id="sv-deposit-note" maxlength="30" placeholder="备注（可选）" aria-label="备注" />
                 <button class="secondary-button" type="submit">记录</button>
@@ -1473,6 +1473,6 @@
     <script src="assets/vendor/lucide.min.js"></script>
     <script src="assets/vendor/marked.umd.js"></script>
     <script src="assets/vendor/purify.min.js"></script>
-    <script src="script.js?v=20260912-savingsfix"></script>
+    <script src="script.js?v=20260912-svsel"></script>
   </body>
 </html>

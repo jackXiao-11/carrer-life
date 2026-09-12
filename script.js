@@ -2932,6 +2932,7 @@ function savingsOf() {
 }
 
 function fillSavingsForm() {
+  populateMonthSelects();
   const savings = savingsOf();
   const monthNow = today.slice(0, 7);
   if (elements.svTotal) elements.svTotal.value = savings.goal.total || "";
@@ -2941,6 +2942,29 @@ function fillSavingsForm() {
   if (elements.svRate) elements.svRate.value = savings.plan.savingsRate || 30;
   if (elements.svEventMonth) elements.svEventMonth.value = monthNow;
   if (elements.svDepositMonth) elements.svDepositMonth.value = monthNow;
+}
+
+function populateMonthSelects() {
+  const selects = [elements.svStart, elements.svDeadline, elements.svEventMonth, elements.svDepositMonth].filter(Boolean);
+  if (!selects.length) return;
+  const now = new Date();
+  const startYear = now.getFullYear() - 2;
+  const endYear = now.getFullYear() + 10;
+  selects.forEach((select) => {
+    if (select.dataset.monthsFilled === String(endYear)) return;
+    const previous = select.value || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    let html = "";
+    for (let year = startYear; year <= endYear; year += 1) {
+      html += `<optgroup label="${year}年">`;
+      for (let month = 1; month <= 12; month += 1) {
+        const value = `${year}-${String(month).padStart(2, "0")}`;
+        html += `<option value="${value}" ${value === previous ? "selected" : ""}>${year}年${month}月</option>`;
+      }
+      html += "</optgroup>";
+    }
+    select.innerHTML = html;
+    select.dataset.monthsFilled = String(endYear);
+  });
 }
 
 function defaultDeadline(startMonth) {
