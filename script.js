@@ -28,7 +28,7 @@ const viewTitles = {
   plans: "让每一天，都有所积累。",
   records: "记录工作，也记录成长。",
   workspace: "修行之路，始于足下。",
-  plaza: "万千修行者，同登此峰。",
+  plaza: "各自修行，看看同行的人。",
 };
 
 const modelNotes = {
@@ -453,7 +453,7 @@ function switchView(viewName) {
     plans: "软件能力与英语，一起向前。",
     records: "每一个解决的问题，都值得留下。",
     workspace: "签到、修行、结伴同行。",
-    plaza: "看看谁在榜上风云。",
+    plaza: "排行榜，偶尔看看就好。",
   }[viewName];
   elements.addTaskButton.hidden = viewName === "records" || viewName === "workspace" || viewName === "plaza";
   if (viewName === "workspace") loadWorkspace();
