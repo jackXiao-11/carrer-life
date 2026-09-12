@@ -1457,12 +1457,12 @@ async function loadLeaderboard() {
       return;
     }
     const avatarOf = plazaAvatarOf;
-    const worshipOf = (entry) => `<button class="worship-button" type="button" data-worship-id="${entry.userId}" aria-label="膜拜${escapeHtml(entry.displayName)}">🙇 ${entry.worships}</button>`;
+    const worshipOf = (entry) => `<button class="worship-button" type="button" data-worship-id="${entry.userId}" aria-label="膜拜${escapeHtml(entry.displayName)}">膜拜 ${entry.worships}</button>`;
     const spot = (entry, position) => entry ? `
       <div class="podium-spot ${position}">
         <span class="podium-rank">NO.${entry.rank}</span>
         <span class="podium-avatar">${avatarOf(entry)}</span>
-        <span class="podium-name lb-click" data-profile-id="${entry.userId}">${escapeHtml(entry.displayName)}${entry.isAdmin ? '<span class="admin-badge">👑 站长</span>' : ""}</span>
+        <span class="podium-name lb-click" data-profile-id="${entry.userId}">${escapeHtml(entry.displayName)}${entry.isAdmin ? '<span class="admin-badge">站长</span>' : ""}</span>
         <span class="level-pill">Lv.${entry.level} ${escapeHtml(entry.levelName)}</span>
         <span class="podium-xp">${entry.xp} XP</span>
         ${worshipOf(entry)}
@@ -1479,7 +1479,7 @@ async function loadLeaderboard() {
         ${rest.map((entry) => `
           <li>
             <span class="rank-badge">${entry.rank}</span>
-            <span class="lb-name lb-click" data-profile-id="${entry.userId}">${escapeHtml(entry.displayName)}${entry.isAdmin ? '<span class="admin-badge">👑 站长</span>' : ""}</span>
+            <span class="lb-name lb-click" data-profile-id="${entry.userId}">${escapeHtml(entry.displayName)}${entry.isAdmin ? '<span class="admin-badge">站长</span>' : ""}</span>
             <span class="level-pill">Lv.${entry.level} ${escapeHtml(entry.levelName)}</span>
             <span class="lb-xp">${entry.xp} XP</span>
             ${worshipOf(entry)}
@@ -1531,7 +1531,7 @@ async function worshipUser(targetId, button) {
     showToast(data.message || "膜拜成功");
     if (button) {
       document.querySelectorAll(`[data-worship-id="${targetId}"]`).forEach((element) => {
-        element.textContent = `🙇 ${data.count}`;
+        element.textContent = `膜拜 ${data.count}`;
         element.disabled = true;
       });
     }
@@ -1548,8 +1548,8 @@ function openProfileDialog(entry) {
     <div class="profile-top">
       <span class="profile-avatar">${plazaAvatarOf(entry)}</span>
       <div>
-        <h2 class="profile-name" id="profile-dialog-name">${escapeHtml(entry.displayName)}${entry.isAdmin ? '<span class="admin-badge">👑 站长</span>' : ""}</h2>
-        <p class="profile-rank">修真榜第 ${entry.rank} 名 · ${entry.checkedInToday ? "今日已签到 🔥" : "今日尚未签到"}</p>
+        <h2 class="profile-name" id="profile-dialog-name">${escapeHtml(entry.displayName)}${entry.isAdmin ? '<span class="admin-badge">站长</span>' : ""}</h2>
+        <p class="profile-rank">修真榜第 ${entry.rank} 名 · ${entry.checkedInToday ? "今日已签到" : "今日尚未签到"}</p>
       </div>
     </div>
     <span class="level-pill big">Lv.${entry.level} ${escapeHtml(entry.levelName)}</span>
@@ -1560,7 +1560,7 @@ function openProfileDialog(entry) {
       <div class="profile-cell"><span>入门日期</span><strong>${joined}</strong></div>
     </div>
     ${accountUser && accountUser.id !== entry.userId
-      ? `<button class="worship-button" type="button" data-worship-id="${entry.userId}" style="justify-self:center">🙇 膜拜大佬</button>`
+      ? `<button class="worship-button" type="button" data-worship-id="${entry.userId}" style="justify-self:center">膜拜大佬</button>`
       : '<p class="plaza-hint" style="justify-self:center">这是你自己，继续加油修行！</p>'}`;
   if (!elements.profileDialog.open) elements.profileDialog.showModal();
   refreshIcons();

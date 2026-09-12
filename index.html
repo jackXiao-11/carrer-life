@@ -252,6 +252,23 @@
       .profile-cell span{font-size:11px;color:var(--text-muted)}
       .profile-cell strong{font-size:14px;font-variant-numeric:tabular-nums}
       @media(max-width:600px){.plaza-stats{grid-template-columns:repeat(2,1fr)}}
+
+      /* ---------- 广场低调风格覆盖 ---------- */
+      .plaza-stat{background:#fff;padding:10px 6px}
+      .plaza-stat svg{color:var(--text-muted)}
+      .plaza-stat strong{font-size:16px;color:var(--text-primary)}
+      .podium-spot,.podium-spot.first,.podium-spot.second,.podium-spot.third{background:var(--surface,#fff);border-color:var(--border)}
+      .podium-spot.first{border-color:rgba(23,26,43,.3)}
+      .podium-spot .podium-rank{color:var(--text-muted)}
+      .podium-spot.first .podium-rank{color:var(--text-secondary)}
+      .podium-avatar{border-color:var(--border);background:var(--brand-soft,#f4f6f8)}
+      .podium-spot.first .podium-avatar{width:60px;height:60px;font-size:20px;border-color:rgba(23,26,43,.3)}
+      #plaza-view .level-pill,.profile-dialog .level-pill{background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-weight:600}
+      #my-rank-card{background:transparent;border:1px dashed var(--border)}
+      .worship-button{border:1px solid var(--border);background:transparent;color:var(--text-secondary)}
+      .worship-button:hover{background:var(--brand-soft,#f4f6f8)}
+      .admin-badge{background:transparent;border:1px solid var(--border);color:var(--text-secondary);background-image:none}
+      .profile-avatar{border-color:var(--border)}
     </style>
   </head>
   <body>
@@ -1091,6 +1108,6 @@
     <script src="assets/vendor/lucide.min.js"></script>
     <script src="assets/vendor/marked.umd.js"></script>
     <script src="assets/vendor/purify.min.js"></script>
-    <script src="script.js?v=20260912-plaza"></script>
+    <script src="script.js?v=20260912-plaza-muted"></script>
   </body>
 </html>
