@@ -1,3 +1,4 @@
+/** 好友：POST 处理收到的申请（accept 同意 / reject 拒绝并删除记录）。 */
 import { getSessionUser, json, methodNotAllowed, readJson, sameOrigin } from "../_lib.js";
 
 export async function onRequestPost(context) {

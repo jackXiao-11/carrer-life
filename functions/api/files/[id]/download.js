@@ -1,3 +1,4 @@
+/** 云存储：GET 下载指定文件（分片重组），中文文件名用 filename* 编码。仅所有者可下。 */
 import { getSessionUser, json, methodNotAllowed, sameOrigin } from "../../_lib.js";
 
 function base64ToBytes(encoded) {

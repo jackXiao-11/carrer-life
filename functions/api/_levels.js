@@ -1,3 +1,4 @@
+/** 修仙等级核心常量：等级表、各项经验值、北京时间工具。前后端各有一份，修改时保持一致（前端在 script.js）。 */
 export const LEVELS = [
   { level: 1, name: "凡人", xp: 0 },
   { level: 2, name: "炼气期", xp: 100 },

@@ -1,3 +1,18 @@
+/* ============================================================
+ * Career Life 前端主脚本
+ * ------------------------------------------------------------
+ * 文件按【分区横幅】组织，从上到下依次是：
+ *   1. 常量与全局状态     2. DOM 元素引用       3. 应用入口与事件绑定
+ *   4. 页面视图切换       5. 账号与云同步       6. 修为/等级/头像
+ *   7. 任务验收+AI抽查    8. 云存储文件库       9. 签到/统计图表
+ *   10. 好友与协作任务    11. 广场排行榜        12. AI 助手聊天
+ *   13. 任务表单          14. AI 悬浮球拖动     15. 工作记录
+ *   16. 页面渲染          17. 通用工具函数
+ * 维护说明见项目根目录 MAINTENANCE.md
+ * ============================================================ */
+
+/* ================= 1. 常量与全局状态 ================= */
+
 const STORAGE_KEY = "career-life-v1";
 const LEGACY_STORAGE_KEY = "buji-work-learn-v1";
 const CHAT_STORAGE_KEY = "career-life-chat-v1";
@@ -41,6 +56,23 @@ let profileCache = null;
 let friendsCache = { friends: [], incoming: [], outgoing: [] };
 let currentView = "dashboard";
 
+/* ---------- 网络请求辅助 ----------
+ * 统一封装 fetch + JSON 解析，所有新接口调用都请用它，避免重复样板。
+ * 示例：
+ *   const { ok, status, data } = await apiJson("/api/friends");
+ *   const r = await apiJson("/api/profile", { method: "PUT", body: { displayName: "潇" } });
+ * 返回：{ ok: 布尔, status: 状态码, data: 解析后的 JSON（失败时为 {}） } */
+async function apiJson(path, { method = "GET", body = null, cache = "default" } = {}) {
+  const options = { method, credentials: "same-origin", cache, headers: { Accept: "application/json" } };
+  if (body !== null) {
+    options.headers["Content-Type"] = "application/json";
+    options.body = JSON.stringify(body);
+  }
+  const response = await fetch(path, options);
+  const data = await response.json().catch(() => ({}));
+  return { ok: response.ok, status: response.status, data };
+}
+
 const CULTIVATION_LEVELS = [
   { level: 1, name: "凡人", xp: 0 },
   { level: 2, name: "炼气期", xp: 100 },
@@ -71,6 +103,8 @@ function getCultivationLevel(xp) {
   };
 }
 
+/* ================= 2. DOM 元素引用 =================
+ * 统一收集页面元素，避免散落在各处的 querySelector。 */
 const elements = {
   todayLabel: document.querySelector("#today-label"),
   viewTitle: document.querySelector("#view-title"),
@@ -184,6 +218,7 @@ const elements = {
 
 initialize();
 
+/* ================= 3. 应用入口与事件绑定 ================= */
 function initialize() {
   elements.todayLabel.textContent = new Intl.DateTimeFormat("zh-CN", {
     month: "long",
@@ -379,6 +414,9 @@ function bindEvents() {
   });
 }
 
+/* ================= 4. 页面视图切换与导航历史 =================
+ * 主页(dashboard)为根，次页之间切换只替换历史栈顶，
+ * 保证手机右滑（后退）永远回到今日概览。 */
 function switchView(viewName) {
   if (!viewTitles[viewName]) viewName = "dashboard";
   document.querySelectorAll(".nav-item").forEach((button) => {
@@ -423,6 +461,7 @@ function switchView(viewName) {
   currentView = viewName;
 }
 
+/* ================= 5. 账号登录与数据云同步 ================= */
 async function initializeAccount() {
   if (!elements.accountButton) return;
   setAccountStatus("本地存储");
@@ -599,6 +638,7 @@ function mergeAccountState(local, remote) {
   };
 }
 
+/* ================= 6. 修为等级 / 头像 / 个人资料 ================= */
 function applyProfileUi() {
   const loggedIn = !!accountUser;
   if (elements.sidebarXp) elements.sidebarXp.hidden = !loggedIn;
@@ -663,10 +703,9 @@ function resetProfileUi() {
 async function loadProfile() {
   if (!accountUser) return;
   try {
-    const response = await fetch("/api/profile", { credentials: "same-origin", headers: { Accept: "application/json" } });
-    if (response.status === 401) { accountUser = null; updateAccountUi(); resetProfileUi(); return; }
-    if (!response.ok) throw new Error("profile failed");
-    const data = await response.json();
+    const { ok, status, data } = await apiJson("/api/profile");
+    if (status === 401) { accountUser = null; updateAccountUi(); resetProfileUi(); return; }
+    if (!ok) throw new Error("profile failed");
     profileCache = data.profile;
     applyProfileUi();
   } catch {
@@ -685,13 +724,8 @@ async function loadWorkspace() {
 async function requestTaskXp(type = "task") {
   if (!accountUser) return;
   try {
-    const response = await fetch("/api/profile/task-xp", {
-      method: "POST", credentials: "same-origin",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ type }),
-    });
-    if (!response.ok) return;
-    const data = await response.json();
+    const { ok, data } = await apiJson("/api/profile/task-xp", { method: "POST", body: { type } });
+    if (!ok) return;
     if (data.awarded && data.profile) {
       profileCache = data.profile;
       applyProfileUi();
@@ -700,6 +734,11 @@ async function requestTaskXp(type = "task") {
   } catch { /* XP sync silently retries on next action */ }
 }
 
+/* ================= 7. 任务验收 / AI 单词抽查 / 单词本 =================
+ * 流程：勾选完成或点「完成」→ openVerifyDialog → submitVerification
+ *   英语任务：填单词 → AI 出 3 道释义题 → 全对才发经验
+ *   其他任务：填成果说明 → 直接通过
+ * 单词自动存入 state.words 并同步到云端。 */
 let verifyTaskId = null;
 let quizData = null;
 
@@ -921,6 +960,9 @@ function renderWords() {
     : '<p class="word-empty">还没有单词。提交英语任务验收时填写的单词会自动记录在这里。</p>';
 }
 
+/* ================= 8. 云存储文件库 =================
+ * 资格：Lv.3 以上 + 14 天内有签到（站长豁免）
+ * 配额：站长 3GB；普通用户等级×100MB，全体共享 2GB */
 function formatBytes(bytes) {
   const units = ["B", "KB", "MB", "GB"];
   let value = Number(bytes) || 0;
@@ -944,10 +986,9 @@ function fileIconFor(name, type) {
 async function loadFiles() {
   if (!accountUser || !elements.fileList) return;
   try {
-    const response = await fetch("/api/files", { credentials: "same-origin", headers: { Accept: "application/json" } });
-    if (response.status === 401) return;
-    if (!response.ok) throw new Error("load failed");
-    const data = await response.json();
+    const { ok, status, data } = await apiJson("/api/files");
+    if (status === 401) return;
+    if (!ok) throw new Error("load failed");
     renderFiles(data);
   } catch {
     elements.fileList.innerHTML = '<p class="file-empty">文件列表暂时无法加载，请点右上角刷新重试。</p>';
@@ -1055,6 +1096,7 @@ async function handleFileAction(event) {
   }
 }
 
+/* ================= 9. 签到 / 道号 / 头像上传 / 修行统计图表 ================= */
 async function handleCheckin() {
   if (!accountUser || !elements.checkinButton) return;
   elements.checkinButton.disabled = true;
@@ -1215,12 +1257,13 @@ function renderWorkspaceStats() {
     }).join("");
 }
 
+/* ================= 10. 好友与协作任务 =================
+ * 加好友(邮箱) → 对方同意 → 可建协作任务，完成双方得经验。 */
 async function loadFriends() {
   if (!accountUser) return;
   try {
-    const response = await fetch("/api/friends", { credentials: "same-origin", headers: { Accept: "application/json" } });
-    if (!response.ok) return;
-    const data = await response.json();
+    const { ok, data } = await apiJson("/api/friends");
+    if (!ok) return;
     friendsCache = data;
     renderFriends();
   } catch { /* friends load retries when workspace opens */ }
@@ -1295,9 +1338,8 @@ function renderCollabFriendSelect() {
 async function loadCollabTasks() {
   if (!accountUser) return;
   try {
-    const response = await fetch("/api/collab", { credentials: "same-origin", headers: { Accept: "application/json" } });
-    if (!response.ok) return;
-    const data = await response.json();
+    const { ok, data } = await apiJson("/api/collab");
+    if (!ok) return;
     renderCollabTasks(data.tasks || []);
   } catch { /* collab load retries when workspace opens */ }
 }
@@ -1389,13 +1431,14 @@ async function handleCollabDelete(event) {
   }
 }
 
+/* ================= 11. 广场排行榜 =================
+ * 前三名领奖台 + 4~10 名列表，含站长徽章。 */
 async function loadLeaderboard() {
   if (!elements.leaderboardList) return;
   elements.leaderboardList.innerHTML = '<p class="plaza-empty">正在加载修真榜…</p>';
   try {
-    const response = await fetch("/api/leaderboard", { credentials: "same-origin", cache: "no-store", headers: { Accept: "application/json" } });
-    if (!response.ok) throw new Error("load failed");
-    const data = await response.json();
+    const { ok, data } = await apiJson("/api/leaderboard", { cache: "no-store" });
+    if (!ok) throw new Error("load failed");
     const entries = data.entries || [];
     if (!entries.length) {
       elements.leaderboardList.innerHTML = '<p class="plaza-empty">榜上还没有修行者，签到和完成任务即可上榜。</p>';
@@ -1448,6 +1491,7 @@ function restoreView() {
   if (view === "ai") toggleChat(true);
 }
 
+/* ================= 12. AI 助手聊天 ================= */
 function toggleChat(open) {
   if (open && elements.chatWindow.hidden)
     chatReturnFocus = document.activeElement;
@@ -2070,6 +2114,7 @@ function loadChatState() {
   return result;
 }
 
+/* ================= 13. 任务表单（添加 / 编辑） ================= */
 function openTaskDialog(taskId = "") {
   elements.taskForm.reset();
   elements.taskForm.elements.date.value = today;
@@ -2189,6 +2234,8 @@ let launcherDrag = null;
 let launcherSuppressClick = false;
 const LAUNCHER_POS_KEY = "career-life-launcher-pos";
 
+/* ================= 14. AI 悬浮球拖动 =================
+ * 点击=打开聊天，拖动=移动位置；位置存 localStorage。 */
 function loadLauncherPosition() {
   try {
     const saved = JSON.parse(localStorage.getItem(LAUNCHER_POS_KEY));
@@ -2275,6 +2322,7 @@ function bindLauncherDrag() {
   });
 }
 
+/* ================= 15. 工作记录 ================= */
 function saveRecord(event) {
   event.preventDefault();
   const formData = new FormData(elements.recordForm);
@@ -2303,6 +2351,8 @@ function deleteRecord(event) {
   showToast("记录已删除");
 }
 
+/* ================= 16. 页面渲染 =================
+ * 任何数据变化后调用 render() 统一刷新各列表。 */
 function render() {
   renderSummary();
   renderTodayTasks();
@@ -2561,6 +2611,7 @@ function emptyTemplate(message) {
     </div>`;
 }
 
+/* ================= 17. 通用工具函数 ================= */
 function showToast(message) {
   elements.toast.textContent = message;
   elements.toast.classList.add("is-visible");

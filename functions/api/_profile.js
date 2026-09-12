@@ -1,3 +1,4 @@
+/** 修为档案共享逻辑：建档、签到（+XP+连签）、发任务经验（含每日上限与升级判定）。 */
 import { CHECKIN_XP, TASK_XP, COLLAB_XP, DAILY_TASK_XP_LIMIT, getLevelInfo, shanghaiToday } from "./_levels.js";
 
 export async function ensureProfile(env, userId) {

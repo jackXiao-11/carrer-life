@@ -1,3 +1,4 @@
+/** 云存储：DELETE 删除指定文件（分片与元数据一起清）。仅文件所有者可删。 */
 import { getSessionUser, json, methodNotAllowed, sameOrigin } from "../_lib.js";
 
 export async function onRequestDelete(context) {

@@ -1,3 +1,4 @@
+/** 协作任务：GET 列表 / POST 与好友共建任务（仅限已互为好友的双方）。 */
 import { getSessionUser, json, methodNotAllowed, readJson, sameOrigin } from "./_lib.js";
 
 const CATEGORIES = new Set(["work", "software", "english"]);

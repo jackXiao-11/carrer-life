@@ -1,3 +1,9 @@
+/**
+ * 云存储：GET 列表+配额 / POST 上传（multipart 的 file 字段）。
+ * 资格：Lv.3 以上且 14 天内有签到（站长豁免）。
+ * 配额：站长 3GB；普通用户等级×100MB，全体共享 2GB。
+ * 文件内容按 700KB 分片 base64 存 file_chunks 表（D1 单参数上限 1MB）。
+ */
 import { getSessionUser, json, methodNotAllowed, sameOrigin } from "./_lib.js";
 import { ensureProfile } from "./_profile.js";
 import { getLevelInfo, shanghaiToday } from "./_levels.js";

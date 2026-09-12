@@ -1,3 +1,4 @@
+/** 协作任务：PATCH 完成/恢复（完成时服务端给双方发经验，不在线也能拿到）；DELETE 仅发起人可删。 */
 import { getSessionUser, json, methodNotAllowed, readJson, sameOrigin } from "../_lib.js";
 import { awardTaskXp } from "../_profile.js";
 

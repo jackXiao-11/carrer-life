@@ -1,3 +1,4 @@
+/** 好友：GET 返回 friends/incoming/outgoing 三组；POST 按邮箱发申请（互发自动成为好友）。 */
 import { getSessionUser, json, methodNotAllowed, readJson, sameOrigin } from "./_lib.js";
 import { getLevelInfo } from "./_levels.js";
 import { ensureProfile } from "./_profile.js";

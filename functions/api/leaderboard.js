@@ -1,3 +1,4 @@
+/** 广场排行榜：返回经验前十（含头像、站长标记）和当前用户排名（登录时）。 */
 import { getSessionUser, json, methodNotAllowed, sameOrigin } from "./_lib.js";
 import { getLevelInfo } from "./_levels.js";
 
