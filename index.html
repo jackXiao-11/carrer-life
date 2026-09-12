@@ -270,59 +270,89 @@
       .admin-badge{background:transparent;border:1px solid var(--border);color:var(--text-secondary);background-image:none}
       .profile-avatar{border-color:var(--border)}
 
-      /* ---------- 健身专区 ---------- */
-      .fitness-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;align-items:start}
-      .fitness-card{display:grid;gap:14px;padding:24px;border:1px solid var(--border);border-radius:18px;background:var(--surface,#fff)}
-      .fit-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-      .fit-stat{display:grid;gap:3px;padding:12px;border:1px solid var(--border);border-radius:10px;background:#fff}
-      .fit-stat span{font-size:11px;color:var(--text-muted)}
-      .fit-stat strong{font-size:16px;font-variant-numeric:tabular-nums}
-      .fit-donut-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-      .donut-wrap.small{width:84px;height:84px}
-      .fit-donut-center{font-size:16px}
-      .workout-list{display:grid;gap:8px;max-height:360px;overflow-y:auto}
-      .workout-item{display:grid;gap:6px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:#fff}
-      .workout-item header{display:flex;align-items:center;gap:8px}
-      .workout-item time{font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums}
-      .workout-type-tag{padding:2px 8px;border:1px solid var(--border);border-radius:999px;font-size:10px;font-weight:700;color:var(--text-secondary)}
-      .workout-item .workout-del{margin-left:auto;padding:3px 8px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text-muted);font-size:11px;cursor:pointer}
-      .workout-item .workout-del:hover{color:var(--danger,#b42335);border-color:currentColor}
-      .workout-summary{margin:0;font-size:12px;color:var(--text-secondary);line-height:1.6}
-      .workout-meta{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--text-muted)}
-      .fitness-empty{margin:0;color:var(--text-muted);font-size:13px}
-      .body-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:end}
-      .body-form label{display:grid;gap:4px;font-size:11px;font-weight:600;color:var(--text-secondary)}
-      .body-form input{min-height:36px;padding:0 8px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:13px}
-      .weight-chart{display:grid;gap:6px}
-      .weight-chart svg{width:100%;height:110px}
-      .weight-chart .chart-caption{margin:0;font-size:11px;color:var(--text-muted)}
-      .body-log-list{display:grid;gap:6px;max-height:180px;overflow-y:auto}
-      .body-log-item{display:flex;gap:10px;font-size:12px;color:var(--text-secondary);padding:6px 10px;border:1px solid var(--border);border-radius:8px}
-      .body-log-item time{color:var(--text-muted)}
-      .workout-dialog{width:min(560px,calc(100% - 32px))}
-      .workout-dialog form{display:grid;gap:14px;padding:24px}
-      .form-row.three{grid-template-columns:repeat(3,minmax(0,1fr))}
-      .workout-block-title{margin:0;font-size:12px;font-weight:700;color:var(--text-muted)}
-      .exercise-row{display:grid;gap:8px;padding:12px;border:1px dashed var(--border);border-radius:12px}
-      .exercise-head{display:flex;gap:8px;align-items:center}
-      .exercise-head select{flex:1;min-height:38px;padding:0 8px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:13px;background:#fff}
-      .set-row{display:grid;grid-template-columns:24px 1fr 1fr auto;gap:6px;align-items:center;font-size:12px;color:var(--text-muted)}
-      .set-row input{min-height:34px;padding:0 8px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:13px}
-      .set-row .set-del{padding:4px 8px;border:1px solid var(--border);border-radius:7px;background:transparent;color:var(--text-muted);font-size:11px;cursor:pointer}
-      .sets-list{display:grid;gap:6px}
-      .add-set-button{justify-self:start;padding:4px 10px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text-secondary);font-size:11px;cursor:pointer}
-      @media(max-width:600px){.form-row.three,.body-form{grid-template-columns:repeat(2,minmax(0,1fr))}}
-      .fit-bars-block{display:grid;gap:8px}
-      .fit-bars{display:flex;align-items:flex-end;gap:8px;height:130px;padding:8px 6px 6px;border:1px solid var(--border);border-radius:12px;background:#fff}
-      .fit-bar-col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;height:100%;min-width:0}
-      .fit-bar-count{font-size:11px;font-weight:700;color:var(--text-secondary);font-variant-numeric:tabular-nums}
-      .fit-bar-fill{width:min(30px,72%);border-radius:6px 6px 3px 3px;background:linear-gradient(180deg,#a5b4fc,#6366f1);min-height:3px;transition:height .5s cubic-bezier(.22,1,.36,1)}
+      /* ---------- 健身专区（专业布局版） ---------- */
+      .fit-hero{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+      .fit-tile{display:flex;align-items:center;gap:12px;padding:16px 18px;border:1px solid var(--border);border-radius:16px;background:var(--surface,#fff);transition:transform .18s ease,box-shadow .18s ease}
+      .fit-tile:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(23,26,43,.07)}
+      .fit-tile-icon{display:grid;place-items:center;width:38px;height:38px;flex:0 0 38px;border-radius:11px;background:var(--brand-soft,#f4f7f9);color:var(--brand,#1a647b)}
+      .fit-tile-icon svg{width:18px;height:18px}
+      .fit-tile div{display:grid;gap:2px;min-width:0}
+      .fit-tile strong{font-size:20px;line-height:1.15;font-variant-numeric:tabular-nums}
+      .fit-tile span{font-size:12px;color:var(--text-muted)}
+      .fitness-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,4fr);gap:18px;align-items:start}
+      .fitness-card{display:grid;gap:16px;padding:22px;border:1px solid var(--border);border-radius:18px;background:var(--surface,#fff)}
+      .fitness-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+      .fitness-card-head .heading-kicker{margin:0 0 3px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--text-muted)}
+      .fitness-card-head h2{margin:0;font-size:18px}
+      .fitness-body-card{grid-column:1 / -1}
+      .fitness-body-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+      .fit-donut-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:6px 2px}
+      .donut-wrap.small{width:88px;height:88px}
+      .fit-donut-center{font-size:17px}
+      .donut-legend{display:grid;gap:7px;font-size:12px;color:var(--text-secondary);flex:1;min-width:150px}
+      .donut-legend span{display:flex;align-items:center;gap:7px}
+      .donut-legend i{width:9px;height:9px;border-radius:3px;display:inline-block;flex:0 0 9px}
+      .fit-bars-block{display:grid;gap:8px;border-top:1px dashed var(--border);padding-top:14px}
+      .fit-bars{display:flex;align-items:flex-end;gap:10px;height:140px;padding:10px 8px 6px;border:1px solid var(--border);border-radius:14px;background:linear-gradient(180deg,#fbfcfd,#fff)}
+      .fit-bar-col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;height:100%;min-width:0}
+      .fit-bar-count{font-size:12px;font-weight:700;color:var(--text-secondary);font-variant-numeric:tabular-nums}
+      .fit-bar-fill{width:min(34px,74%);border-radius:7px 7px 3px 3px;background:linear-gradient(180deg,#a5b4fc,#6366f1);min-height:4px;transition:height .55s cubic-bezier(.22,1,.36,1)}
       .fit-bar-col.chest .fit-bar-fill{background:linear-gradient(180deg,#93c5fd,#2563eb)}
       .fit-bar-col.back .fit-bar-fill{background:linear-gradient(180deg,#c4b5fd,#7c3aed)}
       .fit-bar-col.legs .fit-bar-fill{background:linear-gradient(180deg,#fcd34d,#f59e0b)}
       .fit-bar-col.shoulders .fit-bar-fill{background:linear-gradient(180deg,#6ee7b7,#10b981)}
       .fit-bar-col.core .fit-bar-fill{background:linear-gradient(180deg,#cbd5e1,#64748b)}
       .fit-bar-col.cardio .fit-bar-fill{background:linear-gradient(180deg,#7dd3fc,#38bdf8)}
+      .fit-bar-label{font-size:12px;color:var(--text-muted);white-space:nowrap}
+      .workout-list{display:grid;gap:10px;max-height:430px;overflow-y:auto;padding-right:2px}
+      .workout-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px;border:1px solid var(--border);border-radius:14px;background:#fff;transition:border-color .18s ease,box-shadow .18s ease}
+      .workout-item:hover{border-color:rgba(23,26,43,.24);box-shadow:0 6px 18px rgba(23,26,43,.05)}
+      .workout-date-chip{display:grid;place-items:center;min-width:46px;padding:7px 4px;border:1px solid var(--border);border-radius:11px;background:linear-gradient(180deg,#fbfcfd,#fff);line-height:1.1}
+      .workout-date-chip strong{font-size:17px;font-variant-numeric:tabular-nums}
+      .workout-date-chip span{font-size:10px;color:var(--text-muted)}
+      .workout-main{display:grid;gap:5px;min-width:0}
+      .workout-title-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+      .workout-type-tag{padding:2px 9px;border:1px solid var(--border);border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.04em;color:var(--text-secondary)}
+      .workout-duration-text{font-size:12px;color:var(--text-muted)}
+      .workout-summary{margin:0;font-size:13px;color:var(--text-secondary);line-height:1.6;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+      .workout-metric{display:grid;justify-items:end;gap:6px}
+      .workout-volume-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:9px;background:var(--brand-soft,#f4f7f9);color:var(--brand,#1a647b);font-size:12px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+      .workout-volume-chip svg{width:13px;height:13px}
+      .workout-del{padding:4px 8px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--text-muted);font-size:11px;cursor:pointer;transition:color .15s ease,border-color .15s ease}
+      .workout-del:hover{color:var(--danger,#b42335);border-color:currentColor}
+      .fitness-empty{margin:0;color:var(--text-muted);font-size:13px;padding:8px 0}
+      .body-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:end}
+      .body-field{display:grid;gap:5px}
+      .body-field label{font-size:12px;font-weight:600;color:var(--text-secondary)}
+      .body-field input{min-height:40px;padding:0 10px;border:1px solid var(--border);border-radius:10px;font:inherit;font-size:14px;background:#fff}
+      .body-field input:focus{outline:3px solid var(--focus-ring,rgba(26,100,123,.18));border-color:var(--brand,#1a647b)}
+      .weight-chart{display:grid;gap:8px;border:1px solid var(--border);border-radius:14px;padding:14px;background:linear-gradient(180deg,#fbfcfd,#fff)}
+      .weight-chart svg{width:100%;height:130px}
+      .weight-chart .chart-caption{margin:0;font-size:12px;color:var(--text-muted)}
+      .body-log-list{display:grid;gap:7px;max-height:170px;overflow-y:auto;margin-top:12px}
+      .body-log-item{display:flex;gap:12px;font-size:13px;color:var(--text-secondary);padding:8px 12px;border:1px solid var(--border);border-radius:10px;background:#fff}
+      .body-log-item time{color:var(--text-muted);font-variant-numeric:tabular-nums}
+      .workout-dialog{width:min(560px,calc(100% - 32px))}
+      .workout-dialog form{display:grid;gap:16px;padding:24px}
+      .segmented{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border:1px solid var(--border);border-radius:12px;background:#f4f6f8}
+      .segmented button{min-height:40px;border:0;border-radius:9px;background:transparent;font:inherit;font-size:14px;font-weight:600;color:var(--text-secondary);cursor:pointer;transition:background .18s ease,color .18s ease,box-shadow .18s ease}
+      .segmented button.active{background:#fff;color:var(--text-primary);box-shadow:0 2px 8px rgba(23,26,43,.1)}
+      .workout-field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+      .workout-field-row label{display:grid;gap:5px;font-size:12px;font-weight:600;color:var(--text-secondary)}
+      .workout-field-row input,.workout-field-row select{min-height:40px;padding:0 10px;border:1px solid var(--border);border-radius:10px;font:inherit;font-size:14px;background:#fff}
+      .workout-block-title{margin:0;font-size:12px;font-weight:700;color:var(--text-muted);letter-spacing:.04em}
+      .exercise-row{display:grid;gap:10px;padding:12px;border:1px dashed var(--border);border-radius:13px;background:#fbfcfd}
+      .exercise-head{display:flex;gap:8px;align-items:center}
+      .exercise-head select{flex:1;min-height:40px;padding:0 10px;border:1px solid var(--border);border-radius:10px;font:inherit;font-size:14px;background:#fff}
+      .set-row{display:grid;grid-template-columns:26px 1fr 1fr auto;gap:8px;align-items:center;font-size:12px;color:var(--text-muted)}
+      .set-row input{min-height:38px;padding:0 10px;border:1px solid var(--border);border-radius:9px;font:inherit;font-size:14px;background:#fff}
+      .set-row .set-del{min-width:38px;min-height:38px;padding:0;border:1px solid var(--border);border-radius:9px;background:transparent;color:var(--text-muted);font-size:12px;cursor:pointer;transition:color .15s ease}
+      .set-row .set-del:hover{color:var(--danger,#b42335);border-color:currentColor}
+      .sets-list{display:grid;gap:7px}
+      .add-set-button{justify-self:start;min-height:34px;padding:0 12px;border:1px solid var(--border);border-radius:9px;background:transparent;color:var(--text-secondary);font-size:12px;font-weight:600;cursor:pointer;transition:background .15s ease}
+      .add-set-button:hover{background:var(--brand-soft,#f4f7f9)}
+      @media(max-width:900px){.fitness-grid{grid-template-columns:1fr}.fitness-body-layout{grid-template-columns:1fr}}
+      @media(max-width:700px){.fit-hero{grid-template-columns:repeat(2,minmax(0,1fr))}}
       .fit-bar-label{font-size:11px;color:var(--text-muted);white-space:nowrap}
     </style>
   </head>
@@ -693,26 +723,51 @@
             </section>
           </div>
         </section>
-
         <section
           class="view"
           id="fitness-view"
           role="region"
           aria-labelledby="fitness-view-title"
         >
+          <div class="fit-hero" aria-label="健身概览">
+            <div class="fit-tile">
+              <span class="fit-tile-icon"><i data-lucide="calendar-check"></i></span>
+              <div><strong id="fit-week-count">0 次</strong><span>近7天训练</span></div>
+            </div>
+            <div class="fit-tile">
+              <span class="fit-tile-icon"><i data-lucide="timer"></i></span>
+              <div><strong id="fit-week-minutes">0 分钟</strong><span>近7天时长</span></div>
+            </div>
+            <div class="fit-tile">
+              <span class="fit-tile-icon"><i data-lucide="scale"></i></span>
+              <div><strong id="fit-latest-weight">— kg</strong><span>最新体重</span></div>
+            </div>
+            <div class="fit-tile">
+              <span class="fit-tile-icon"><i data-lucide="layers"></i></span>
+              <div><strong id="fit-month-sets">0 组</strong><span>近30天组数</span></div>
+            </div>
+          </div>
+
           <div class="fitness-grid">
-            <section class="fitness-card" aria-labelledby="fitness-stats-title">
-              <div class="section-heading compact-heading">
+            <section class="fitness-card fitness-log-card" aria-labelledby="fitness-log-title">
+              <div class="fitness-card-head">
                 <div>
-                  <p class="heading-kicker">数据面板</p>
-                  <h2 id="fitness-stats-title">训练概览</h2>
+                  <p class="heading-kicker">训练日志</p>
+                  <h2 id="fitness-log-title">健身记录</h2>
                 </div>
+                <button class="primary-button" type="button" id="open-workout-button">
+                  <i data-lucide="plus"></i><span>记录训练</span>
+                </button>
               </div>
-              <div class="fit-stats">
-                <div class="fit-stat"><span>近7天训练</span><strong id="fit-week-count">0 次</strong></div>
-                <div class="fit-stat"><span>近7天时长</span><strong id="fit-week-minutes">0 分钟</strong></div>
-                <div class="fit-stat"><span>最新体重</span><strong id="fit-latest-weight">— kg</strong></div>
-                <div class="fit-stat"><span>近30天组数</span><strong id="fit-month-sets">0 组</strong></div>
+              <div class="workout-list" id="workout-list"></div>
+            </section>
+
+            <section class="fitness-card fitness-analysis-card" aria-labelledby="fitness-stats-title">
+              <div class="fitness-card-head">
+                <div>
+                  <p class="heading-kicker">训练分析</p>
+                  <h2 id="fitness-stats-title">部位与趋势</h2>
+                </div>
               </div>
               <div class="fit-donut-row">
                 <div class="donut-wrap small">
@@ -727,40 +782,45 @@
               </div>
             </section>
 
-            <section class="fitness-card" aria-labelledby="fitness-log-title">
-              <div class="section-heading compact-heading">
-                <div>
-                  <p class="heading-kicker">训练日志</p>
-                  <h2 id="fitness-log-title">健身记录</h2>
-                </div>
-                <button class="primary-button" type="button" id="open-workout-button">
-                  <i data-lucide="plus"></i><span>记录训练</span>
-                </button>
-              </div>
-              <div class="workout-list" id="workout-list"></div>
-            </section>
-
-            <section class="fitness-card" aria-labelledby="fitness-body-title">
-              <div class="section-heading compact-heading">
+            <section class="fitness-card fitness-body-card" aria-labelledby="fitness-body-title">
+              <div class="fitness-card-head">
                 <div>
                   <p class="heading-kicker">身体数据</p>
                   <h2 id="fitness-body-title">体重与围度</h2>
                 </div>
               </div>
-              <form class="body-form" id="body-form">
-                <label><span>日期</span><input type="date" id="body-date" required /></label>
-                <label><span>体重(kg)</span><input type="number" id="body-weight" step="0.1" min="20" max="300" required /></label>
-                <label><span>胸围(cm)</span><input type="number" id="body-chest" step="0.5" min="0" max="250" placeholder="可选" /></label>
-                <label><span>腰围(cm)</span><input type="number" id="body-waist" step="0.5" min="0" max="250" placeholder="可选" /></label>
-                <label><span>臂围(cm)</span><input type="number" id="body-arm" step="0.5" min="0" max="100" placeholder="可选" /></label>
-                <button class="secondary-button" type="submit">记录</button>
-              </form>
-              <div class="weight-chart" id="weight-chart"></div>
-              <div class="body-log-list" id="body-log-list"></div>
+              <div class="fitness-body-layout">
+                <div>
+                  <form class="body-form" id="body-form">
+                    <div class="body-field">
+                      <label for="body-date">日期</label>
+                      <input type="date" id="body-date" required />
+                    </div>
+                    <div class="body-field">
+                      <label for="body-weight">体重(kg) *</label>
+                      <input type="number" id="body-weight" step="0.1" min="20" max="300" required />
+                    </div>
+                    <div class="body-field">
+                      <label for="body-chest">胸围(cm) 可选</label>
+                      <input type="number" id="body-chest" step="0.5" min="0" max="250" />
+                    </div>
+                    <div class="body-field">
+                      <label for="body-waist">腰围(cm) 可选</label>
+                      <input type="number" id="body-waist" step="0.5" min="0" max="250" />
+                    </div>
+                    <div class="body-field">
+                      <label for="body-arm">臂围(cm) 可选</label>
+                      <input type="number" id="body-arm" step="0.5" min="0" max="100" />
+                    </div>
+                    <button class="secondary-button" type="submit">记录</button>
+                  </form>
+                  <div class="body-log-list" id="body-log-list"></div>
+                </div>
+                <div class="weight-chart" id="weight-chart"></div>
+              </div>
             </section>
           </div>
         </section>
-
         <section
           class="view"
           id="workspace-view"
@@ -1233,15 +1293,17 @@
         </button>
       </div>
       <form id="workout-form">
-        <div class="form-row three">
+        <div class="segmented" role="tablist" aria-label="训练类型">
+          <button type="button" class="active" data-workout-seg="strength">力量训练</button>
+          <button type="button" data-workout-seg="cardio">有氧运动</button>
+        </div>
+        <select id="workout-type" hidden>
+          <option value="strength">力量训练</option>
+          <option value="cardio">有氧运动</option>
+        </select>
+        <div class="workout-field-row">
           <label><span>日期</span><input type="date" id="workout-date" required /></label>
-          <label><span>类型</span>
-            <select id="workout-type">
-              <option value="strength">力量训练</option>
-              <option value="cardio">有氧运动</option>
-            </select>
-          </label>
-          <label><span>时长(分钟)</span><input type="number" id="workout-duration" min="5" max="360" step="5" value="60" required /></label>
+          <label><span>时长（分钟）</span><input type="number" id="workout-duration" min="5" max="360" step="5" value="60" required /></label>
         </div>
         <div id="strength-block">
           <p class="workout-block-title">动作与组数</p>
@@ -1281,6 +1343,6 @@
     <script src="assets/vendor/lucide.min.js"></script>
     <script src="assets/vendor/marked.umd.js"></script>
     <script src="assets/vendor/purify.min.js"></script>
-    <script src="script.js?v=20260912-fitbars"></script>
+    <script src="script.js?v=20260912-fitui"></script>
   </body>
 </html>

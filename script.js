@@ -378,6 +378,12 @@ function bindEvents() {
   document.querySelector("#cancel-workout-button")?.addEventListener("click", closeWorkoutDialog);
   elements.workoutForm?.addEventListener("submit", saveWorkout);
   elements.workoutType?.addEventListener("change", syncWorkoutTypeBlocks);
+  document.querySelectorAll("[data-workout-seg]").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (elements.workoutType) elements.workoutType.value = button.dataset.workoutSeg;
+      syncWorkoutTypeBlocks();
+    });
+  });
   document.querySelector("#add-exercise-button")?.addEventListener("click", () => addExerciseRow());
   elements.exerciseList?.addEventListener("click", handleExerciseListClick);
   elements.exerciseList?.addEventListener("change", handleExerciseSelectChange);
@@ -2616,19 +2622,26 @@ function renderWorkoutList() {
   elements.workoutList.innerHTML = workouts.length
     ? workouts.map((workout) => `
       <article class="workout-item">
-        <header>
-          <time>${formatDate(workout.date)}</time>
-          <span class="workout-type-tag">${workoutTypeLabels[workout.type] || workout.type}</span>
-          <span class="workout-meta-item">${workout.duration} 分钟</span>
+        <div class="workout-date-chip">
+          <strong>${workout.date.slice(8, 10)}</strong>
+          <span>${Number(workout.date.slice(5, 7))}月</span>
+        </div>
+        <div class="workout-main">
+          <div class="workout-title-row">
+            <span class="workout-type-tag">${workoutTypeLabels[workout.type] || workout.type}</span>
+            <span class="workout-duration-text">${workout.duration} 分钟</span>
+          </div>
+          <p class="workout-summary" title="${escapeHtml(workoutSummary(workout))}">${escapeHtml(workoutSummary(workout))}</p>
+          ${workout.note ? `<p class="workout-summary" style="color:var(--text-muted)">备注：${escapeHtml(workout.note)}</p>` : ""}
+        </div>
+        <div class="workout-metric">
+          ${workout.type === "strength" && workoutVolume(workout)
+            ? `<span class="workout-volume-chip"><i data-lucide="weight"></i>${workoutVolume(workout).toLocaleString("zh-CN")} kg</span>` : ""}
           <button class="workout-del" type="button" data-delete-workout="${workout.id}" aria-label="删除训练">删除</button>
-        </header>
-        <p class="workout-summary">${escapeHtml(workoutSummary(workout))}</p>
-        <div class="workout-meta">
-          ${workout.type === "strength" && workoutVolume(workout) ? `<span>总训练量 ${workoutVolume(workout).toLocaleString("zh-CN")} kg</span>` : ""}
-          ${workout.note ? `<span>${escapeHtml(workout.note)}</span>` : ""}
         </div>
       </article>`).join("")
     : '<p class="fitness-empty">还没有训练记录，点「记录训练」开始第一次吧。</p>';
+  refreshIcons();
 }
 
 function closeWorkoutDialog() {
@@ -2655,6 +2668,9 @@ function syncWorkoutTypeBlocks() {
   const strengthBlock = document.querySelector("#strength-block");
   if (strengthBlock) strengthBlock.hidden = !isStrength;
   if (elements.cardioBlock) elements.cardioBlock.hidden = isStrength;
+  document.querySelectorAll("[data-workout-seg]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.workoutSeg === (isStrength ? "strength" : "cardio"));
+  });
 }
 
 function exerciseOptionsHtml(selected) {
