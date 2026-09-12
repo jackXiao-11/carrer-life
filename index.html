@@ -312,6 +312,18 @@
       .sets-list{display:grid;gap:6px}
       .add-set-button{justify-self:start;padding:4px 10px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text-secondary);font-size:11px;cursor:pointer}
       @media(max-width:600px){.form-row.three,.body-form{grid-template-columns:repeat(2,minmax(0,1fr))}}
+      .fit-bars-block{display:grid;gap:8px}
+      .fit-bars{display:flex;align-items:flex-end;gap:8px;height:130px;padding:8px 6px 6px;border:1px solid var(--border);border-radius:12px;background:#fff}
+      .fit-bar-col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;height:100%;min-width:0}
+      .fit-bar-count{font-size:11px;font-weight:700;color:var(--text-secondary);font-variant-numeric:tabular-nums}
+      .fit-bar-fill{width:min(30px,72%);border-radius:6px 6px 3px 3px;background:linear-gradient(180deg,#a5b4fc,#6366f1);min-height:3px;transition:height .5s cubic-bezier(.22,1,.36,1)}
+      .fit-bar-col.chest .fit-bar-fill{background:linear-gradient(180deg,#93c5fd,#2563eb)}
+      .fit-bar-col.back .fit-bar-fill{background:linear-gradient(180deg,#c4b5fd,#7c3aed)}
+      .fit-bar-col.legs .fit-bar-fill{background:linear-gradient(180deg,#fcd34d,#f59e0b)}
+      .fit-bar-col.shoulders .fit-bar-fill{background:linear-gradient(180deg,#6ee7b7,#10b981)}
+      .fit-bar-col.core .fit-bar-fill{background:linear-gradient(180deg,#cbd5e1,#64748b)}
+      .fit-bar-col.cardio .fit-bar-fill{background:linear-gradient(180deg,#7dd3fc,#38bdf8)}
+      .fit-bar-label{font-size:11px;color:var(--text-muted);white-space:nowrap}
     </style>
   </head>
   <body>
@@ -708,6 +720,10 @@
                   <span class="donut-center fit-donut-center" id="fit-donut-center">0</span>
                 </div>
                 <div class="donut-legend" id="fit-donut-legend"></div>
+              </div>
+              <div class="fit-bars-block">
+                <p class="workout-block-title">近30天各部位组数</p>
+                <div class="fit-bars" id="fit-bars" role="img" aria-label="近30天各部位训练组数柱状图"></div>
               </div>
             </section>
 
@@ -1265,6 +1281,6 @@
     <script src="assets/vendor/lucide.min.js"></script>
     <script src="assets/vendor/marked.umd.js"></script>
     <script src="assets/vendor/purify.min.js"></script>
-    <script src="script.js?v=20260912-fitness"></script>
+    <script src="script.js?v=20260912-fitbars"></script>
   </body>
 </html>

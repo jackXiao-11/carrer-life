@@ -225,6 +225,7 @@ const elements = {
   fitDonut: document.querySelector("#fit-donut"),
   fitDonutCenter: document.querySelector("#fit-donut-center"),
   fitDonutLegend: document.querySelector("#fit-donut-legend"),
+  fitBars: document.querySelector("#fit-bars"),
   brandAvatar: document.querySelector("#brand-avatar"),
   brandIcon: document.querySelector("#brand-icon"),
   sidebarAvatar: document.querySelector("#sidebar-avatar"),
@@ -2537,6 +2538,7 @@ function renderFitnessStats() {
     .reduce((total, workout) => total + (workout.exercises || []).reduce((sum, exercise) => sum + (exercise.sets?.length || 0), 0), 0);
   if (elements.fitMonthSets) elements.fitMonthSets.textContent = `${monthSets} 组`;
   renderCategoryDonut(workouts.filter((workout) => new Date(`${workout.date}T00:00:00`).getTime() >= thirtyDaysAgo));
+  renderCategoryBars(workouts.filter((workout) => new Date(`${workout.date}T00:00:00`).getTime() >= thirtyDaysAgo));
 }
 
 function renderCategoryDonut(recentWorkouts) {
@@ -2567,6 +2569,26 @@ function renderCategoryDonut(recentWorkouts) {
       ? segments.map(([key, count]) => `<span><i style="background:${colors[key] || "#94a3b8"}"></i>${fitnessCategoryLabels[key] || key} ${Math.round((count / total) * 100)}%</span>`).join("")
       : "<span>近30天还没有训练记录</span>";
   }
+}
+
+function renderCategoryBars(recentWorkouts) {
+  if (!elements.fitBars) return;
+  const order = ["chest", "back", "legs", "shoulders", "arms", "core", "cardio"];
+  const counts = Object.fromEntries(order.map((key) => [key, 0]));
+  for (const workout of recentWorkouts) {
+    if (workout.type === "cardio") { counts.cardio += 1; continue; }
+    for (const exercise of workout.exercises || []) {
+      const key = order.includes(exercise.category) ? exercise.category : "chest";
+      counts[key] += exercise.sets?.length || 0;
+    }
+  }
+  const max = Math.max(...Object.values(counts), 1);
+  elements.fitBars.innerHTML = order.map((key) => `
+    <div class="fit-bar-col ${key}" title="${fitnessCategoryLabels[key]} ${counts[key]} 组">
+      <span class="fit-bar-count">${counts[key] || ""}</span>
+      <div class="fit-bar-fill" style="height:${Math.max(3, (counts[key] / max) * 100)}%"></div>
+      <span class="fit-bar-label">${fitnessCategoryLabels[key]}</span>
+    </div>`).join("");
 }
 
 function workoutVolume(workout) {
