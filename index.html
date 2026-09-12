@@ -193,7 +193,7 @@
       }
       .workspace-nav{display:none}
       @media(max-width:767px){
-        .main-nav{grid-template-columns:repeat(6,minmax(0,1fr))}
+        .main-nav{grid-template-columns:repeat(7,minmax(0,1fr))}
         .main-nav .nav-item{font-size:11px}
         .workspace-nav{display:flex}
         .ai-nav{display:none}
@@ -353,6 +353,28 @@
       .add-set-button:hover{background:var(--brand-soft,#f4f7f9)}
       @media(max-width:900px){.fitness-grid{grid-template-columns:1fr}.fitness-body-layout{grid-template-columns:1fr}}
       @media(max-width:700px){.fit-hero{grid-template-columns:repeat(2,minmax(0,1fr))}}
+      /* ---------- 存钱计划 ---------- */
+      .savings-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+      .savings-deposit-card{grid-column:1 / -1}
+      .sv-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:end}
+      .sv-form .body-field input{width:100%}
+      .sv-events{display:grid;gap:10px;border-top:1px dashed var(--border);padding-top:14px}
+      .sv-event-form{display:grid;grid-template-columns:110px 110px 110px minmax(0,1fr) auto;gap:8px;align-items:center}
+      .sv-event-form input,.sv-event-form select{min-height:40px;padding:0 10px;border:1px solid var(--border);border-radius:10px;font:inherit;font-size:13px;background:#fff}
+      .sv-event-list,.sv-deposit-list{display:grid;gap:7px}
+      .sv-event-item,.sv-deposit-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;background:#fff;font-size:13px;color:var(--text-secondary)}
+      .sv-event-item time,.sv-deposit-item time{color:var(--text-muted);font-variant-numeric:tabular-nums;min-width:72px}
+      .sv-event-tag{padding:2px 8px;border:1px solid var(--border);border-radius:999px;font-size:10px;font-weight:700;color:var(--text-secondary);white-space:nowrap}
+      .sv-event-item .sv-del,.sv-deposit-item .sv-del{margin-left:auto;padding:4px 9px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--text-muted);font-size:11px;cursor:pointer}
+      .sv-event-item .sv-del:hover,.sv-deposit-item .sv-del:hover{color:var(--danger,#b42335);border-color:currentColor}
+      .sv-verdict{margin:0;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:#fbfcfd;font-size:13px;line-height:1.7;color:var(--text-secondary)}
+      .sv-chart{display:grid;gap:6px}
+      .sv-chart svg{width:100%;height:170px}
+      .sv-chart .chart-caption{margin:0;font-size:12px;color:var(--text-muted)}
+      .sv-chart-legend{display:flex;gap:14px;font-size:12px;color:var(--text-secondary)}
+      .sv-chart-legend i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:5px}
+      .sv-empty{margin:0;color:var(--text-muted);font-size:13px}
+      @media(max-width:900px){.savings-grid{grid-template-columns:1fr}.sv-event-form{grid-template-columns:repeat(2,minmax(0,1fr))}}
       .fit-bar-label{font-size:11px;color:var(--text-muted);white-space:nowrap}
     </style>
   </head>
@@ -393,6 +415,10 @@
           <button class="nav-item" type="button" data-view="fitness">
             <i data-lucide="dumbbell"></i>
             <span>健身</span>
+          </button>
+          <button class="nav-item" type="button" data-view="savings">
+            <i data-lucide="piggy-bank"></i>
+            <span>存钱</span>
           </button>
           <button class="nav-item" type="button" data-view="plaza">
             <i data-lucide="trophy"></i>
@@ -822,6 +848,111 @@
           </div>
         </section>
         <section
+        <section
+          class="view"
+          id="savings-view"
+          role="region"
+          aria-labelledby="savings-view-title"
+        >
+          <div class="fit-hero" aria-label="存钱概览">
+            <div class="fit-tile">
+              <span class="fit-tile-icon"><i data-lucide="target"></i></span>
+              <div><strong id="sv-goal">¥0</strong><span>目标金额</span></div>
+            </div>
+            <div class="fit-tile">
+              <span class="fit-tile-icon"><i data-lucide="wallet"></i></span>
+              <div><strong id="sv-saved">¥0</strong><span>已存入（进度 <b id="sv-progress">0%</b>）</span></div>
+            </div>
+            <div class="fit-tile">
+              <span class="fit-tile-icon"><i data-lucide="trending-up"></i></span>
+              <div><strong id="sv-projected">¥0</strong><span>按计划到期预计</span></div>
+            </div>
+            <div class="fit-tile">
+              <span class="fit-tile-icon"><i data-lucide="calendar-clock"></i></span>
+              <div><strong id="sv-required">¥0</strong><span>平均每月需存</span></div>
+            </div>
+          </div>
+
+          <div class="fitness-grid savings-grid">
+            <section class="fitness-card" aria-labelledby="sv-plan-title">
+              <div class="fitness-card-head">
+                <div>
+                  <p class="heading-kicker">计划设定</p>
+                  <h2 id="sv-plan-title">目标与收入</h2>
+                </div>
+              </div>
+              <form id="savings-goal-form" class="sv-form">
+                <div class="body-field">
+                  <label for="sv-total">目标金额（元）</label>
+                  <input type="number" id="sv-total" min="0" step="1000" required />
+                </div>
+                <div class="body-field">
+                  <label for="sv-deadline">截止年月</label>
+                  <input type="month" id="sv-deadline" required />
+                </div>
+                <div class="body-field">
+                  <label for="sv-start">开始年月</label>
+                  <input type="month" id="sv-start" required />
+                </div>
+                <div class="body-field">
+                  <label for="sv-salary">当前月薪（元）</label>
+                  <input type="number" id="sv-salary" min="0" step="500" required />
+                </div>
+                <div class="body-field">
+                  <label for="sv-rate">储蓄率（%）</label>
+                  <input type="number" id="sv-rate" min="1" max="95" step="1" value="30" required />
+                </div>
+                <button class="secondary-button" type="submit">保存计划</button>
+              </form>
+              <div class="sv-events">
+                <p class="workout-block-title">收入变化事件（跳槽涨薪 / 奖金）</p>
+                <form id="sv-event-form" class="sv-event-form">
+                  <input type="month" id="sv-event-month" required aria-label="发生月份" />
+                  <select id="sv-event-type" aria-label="类型">
+                    <option value="raise">涨薪到</option>
+                    <option value="bonus">奖金 +</option>
+                  </select>
+                  <input type="number" id="sv-event-amount" min="0" step="500" required aria-label="金额（元）" placeholder="金额" />
+                  <input type="text" id="sv-event-note" maxlength="30" placeholder="备注（可选）" aria-label="备注" />
+                  <button class="secondary-button" type="submit">添加</button>
+                </form>
+                <div id="sv-event-list" class="sv-event-list"></div>
+              </div>
+            </section>
+
+            <section class="fitness-card" aria-labelledby="sv-analysis-title">
+              <div class="fitness-card-head">
+                <div>
+                  <p class="heading-kicker">模拟分析</p>
+                  <h2 id="sv-analysis-title">达成预测</h2>
+                </div>
+              </div>
+              <p class="sv-verdict" id="sv-verdict">先设定目标和收入计划，这里会给出预测。</p>
+              <div class="sv-chart" id="sv-chart"></div>
+              <div class="sv-chart-legend">
+                <span><i style="background:#7c3aed"></i>计划累计</span>
+                <span><i style="background:#10b981"></i>实际存款</span>
+              </div>
+            </section>
+
+            <section class="fitness-card savings-deposit-card" aria-labelledby="sv-deposit-title">
+              <div class="fitness-card-head">
+                <div>
+                  <p class="heading-kicker">存款记录</p>
+                  <h2 id="sv-deposit-title">实际存入</h2>
+                </div>
+              </div>
+              <form id="sv-deposit-form" class="sv-event-form">
+                <input type="month" id="sv-deposit-month" required aria-label="存款月份" />
+                <input type="number" id="sv-deposit-amount" min="0" step="100" required aria-label="存入金额（元）" placeholder="金额" />
+                <input type="text" id="sv-deposit-note" maxlength="30" placeholder="备注（可选）" aria-label="备注" />
+                <button class="secondary-button" type="submit">记录</button>
+              </form>
+              <div id="sv-deposit-list" class="sv-deposit-list"></div>
+            </section>
+          </div>
+        </section>
+
           class="view"
           id="workspace-view"
           role="region"
@@ -1343,6 +1474,6 @@
     <script src="assets/vendor/lucide.min.js"></script>
     <script src="assets/vendor/marked.umd.js"></script>
     <script src="assets/vendor/purify.min.js"></script>
-    <script src="script.js?v=20260912-fitui"></script>
+    <script src="script.js?v=20260912-savings"></script>
   </body>
 </html>

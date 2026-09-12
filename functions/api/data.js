@@ -43,6 +43,14 @@ export async function onRequestPut(context) {
       return json({ error: "健身数据格式不正确。" }, 400);
     }
   }
+  if (data.savings !== undefined) {
+    const savings = data.savings;
+    if (!savings || typeof savings !== "object"
+      || (savings.deposits !== undefined && (!Array.isArray(savings.deposits) || savings.deposits.length > 1000))
+      || (savings.plan?.events !== undefined && (!Array.isArray(savings.plan.events) || savings.plan.events.length > 200))) {
+      return json({ error: "存钱计划数据格式不正确。" }, 400);
+    }
+  }
   const serialized = JSON.stringify(data);
   if (new TextEncoder().encode(serialized).byteLength > MAX_JSON_BYTES) return json({ error: "数据内容过大。" }, 413);
   const updatedAt = Date.now();

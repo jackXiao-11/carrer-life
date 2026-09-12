@@ -28,6 +28,7 @@ const viewTitles = {
   plans: "让每一天，都有所积累。",
   records: "记录工作，也记录成长。",
   fitness: "身体是修行的本钱。",
+  savings: "积少成多，聚沙成塔。",
   workspace: "修行之路，始于足下。",
   plaza: "各自修行，看看同行的人。",
 };
@@ -226,6 +227,30 @@ const elements = {
   fitDonutCenter: document.querySelector("#fit-donut-center"),
   fitDonutLegend: document.querySelector("#fit-donut-legend"),
   fitBars: document.querySelector("#fit-bars"),
+  svGoal: document.querySelector("#sv-goal"),
+  svSaved: document.querySelector("#sv-saved"),
+  svProgress: document.querySelector("#sv-progress"),
+  svProjected: document.querySelector("#sv-projected"),
+  svRequired: document.querySelector("#sv-required"),
+  savingsGoalForm: document.querySelector("#savings-goal-form"),
+  svTotal: document.querySelector("#sv-total"),
+  svDeadline: document.querySelector("#sv-deadline"),
+  svStart: document.querySelector("#sv-start"),
+  svSalary: document.querySelector("#sv-salary"),
+  svRate: document.querySelector("#sv-rate"),
+  svEventForm: document.querySelector("#sv-event-form"),
+  svEventMonth: document.querySelector("#sv-event-month"),
+  svEventType: document.querySelector("#sv-event-type"),
+  svEventAmount: document.querySelector("#sv-event-amount"),
+  svEventNote: document.querySelector("#sv-event-note"),
+  svEventList: document.querySelector("#sv-event-list"),
+  svVerdict: document.querySelector("#sv-verdict"),
+  svChart: document.querySelector("#sv-chart"),
+  svDepositForm: document.querySelector("#sv-deposit-form"),
+  svDepositMonth: document.querySelector("#sv-deposit-month"),
+  svDepositAmount: document.querySelector("#sv-deposit-amount"),
+  svDepositNote: document.querySelector("#sv-deposit-note"),
+  svDepositList: document.querySelector("#sv-deposit-list"),
   brandAvatar: document.querySelector("#brand-avatar"),
   brandIcon: document.querySelector("#brand-icon"),
   sidebarAvatar: document.querySelector("#sidebar-avatar"),
@@ -389,6 +414,11 @@ function bindEvents() {
   elements.exerciseList?.addEventListener("change", handleExerciseSelectChange);
   elements.workoutList?.addEventListener("click", handleWorkoutDelete);
   elements.bodyForm?.addEventListener("submit", saveBodyLog);
+  elements.savingsGoalForm?.addEventListener("submit", saveSavingsGoal);
+  elements.svEventForm?.addEventListener("submit", addSavingsEvent);
+  elements.svEventList?.addEventListener("click", handleSavingsEventDelete);
+  elements.svDepositForm?.addEventListener("submit", saveSavingsDeposit);
+  elements.svDepositList?.addEventListener("click", handleSavingsDepositDelete);
   elements.filesRefresh?.addEventListener("click", loadFiles);
   elements.uploadButton?.addEventListener("click", () => elements.fileInput?.click());
   elements.fileInput?.addEventListener("change", handleFileSelect);
@@ -509,6 +539,7 @@ function switchView(viewName) {
     plans: "学习计划",
     records: "工作记录",
     fitness: "健身",
+    savings: "存钱",
     workspace: "个人工作空间",
     plaza: "广场",
   }[viewName];
@@ -517,11 +548,13 @@ function switchView(viewName) {
     plans: "软件能力与英语，一起向前。",
     records: "每一个解决的问题，都值得留下。",
     fitness: "记录每一次发力。",
+    savings: "把目标拆进每一个月。",
     workspace: "签到、修行、结伴同行。",
     plaza: "排行榜，偶尔看看就好。",
   }[viewName];
-  elements.addTaskButton.hidden = viewName === "records" || viewName === "workspace" || viewName === "plaza" || viewName === "fitness";
+  elements.addTaskButton.hidden = viewName === "records" || viewName === "workspace" || viewName === "plaza" || viewName === "fitness" || viewName === "savings";
   if (viewName === "fitness") renderFitness();
+  if (viewName === "savings") renderSavings();
   if (viewName === "workspace") loadWorkspace();
   if (viewName === "plaza") loadLeaderboard();
   const targetHash = `#${viewName}`;
@@ -714,6 +747,15 @@ function mergeAccountState(local, remote) {
     fitness: {
       workouts: mergeList(local?.fitness?.workouts, remote?.fitness?.workouts),
       bodyLogs: mergeList(local?.fitness?.bodyLogs, remote?.fitness?.bodyLogs),
+    },
+    savings: {
+      goal: { ...(local?.savings?.goal || {}), ...(remote?.savings?.goal || {}) },
+      plan: {
+        baseSalary: Math.max(Number(local?.savings?.plan?.baseSalary) || 0, Number(remote?.savings?.plan?.baseSalary) || 0),
+        savingsRate: remote?.savings?.plan?.savingsRate ?? local?.savings?.plan?.savingsRate ?? 30,
+        events: mergeList(local?.savings?.plan?.events, remote?.savings?.plan?.events),
+      },
+      deposits: mergeList(local?.savings?.deposits, remote?.savings?.deposits),
     },
   };
 }
@@ -2490,6 +2532,7 @@ function saveRecord(event) {
   document.querySelector("#record-date").value = today;
   document.querySelector("#body-date").value = today;
   document.querySelector("#workout-date").value = today;
+  fillSavingsForm();
   renderRecords();
   showToast("工作记录已保存");
 }
@@ -2861,7 +2904,271 @@ function renderBodyLogs() {
     : '<p class="fitness-empty">还没有身体数据。</p>';
 }
 
-/* ================= 17. 页面渲染 =================
+/* ================= 17. 存钱计划 =================
+ * 目标 + 收入时间线（涨薪/奖金事件）+ 实际存款；
+ * 逐月模拟累计曲线，预测到期达成情况。 */
+function normalizeSavings(data) {
+  const source = data && typeof data === "object" ? data : {};
+  const goal = source.goal && typeof source.goal === "object" ? source.goal : {};
+  const plan = source.plan && typeof source.plan === "object" ? source.plan : {};
+  return {
+    goal: {
+      total: Number(goal.total) || 0,
+      deadline: String(goal.deadline || "").slice(0, 7),
+      startMonth: String(goal.startMonth || "").slice(0, 7),
+    },
+    plan: {
+      baseSalary: Number(plan.baseSalary) || 0,
+      savingsRate: Math.min(95, Math.max(1, Number(plan.savingsRate) || 30)),
+      events: Array.isArray(plan.events) ? plan.events : [],
+    },
+    deposits: Array.isArray(source.deposits) ? source.deposits : [],
+  };
+}
+
+function savingsOf() {
+  if (!state.savings) state.savings = normalizeSavings();
+  return state.savings;
+}
+
+function fillSavingsForm() {
+  const savings = savingsOf();
+  const monthNow = today.slice(0, 7);
+  if (elements.svTotal) elements.svTotal.value = savings.goal.total || "";
+  if (elements.svDeadline) elements.svDeadline.value = savings.goal.deadline || "";
+  if (elements.svStart) elements.svStart.value = savings.goal.startMonth || monthNow;
+  if (elements.svSalary) elements.svSalary.value = savings.plan.baseSalary || "";
+  if (elements.svRate) elements.svRate.value = savings.plan.savingsRate || 30;
+  if (elements.svEventMonth) elements.svEventMonth.value = monthNow;
+  if (elements.svDepositMonth) elements.svDepositMonth.value = monthNow;
+}
+
+function formatMoney(value) {
+  return `¥${(Number(value) || 0).toLocaleString("zh-CN")}`;
+}
+
+function savingsMonthList(startMonth, endMonth) {
+  const months = [];
+  if (!/^\d{4}-\d{2}$/.test(startMonth) || !/^\d{4}-\d{2}$/.test(endMonth)) return months;
+  let [year, month] = startMonth.split("-").map(Number);
+  const [endYear, endMonthNum] = endMonth.split("-").map(Number);
+  let guard = 0;
+  while ((year < endYear || (year === endYear && month <= endMonthNum)) && guard < 600) {
+    months.push(`${year}-${String(month).padStart(2, "0")}`);
+    month += 1;
+    if (month > 12) { month = 1; year += 1; }
+    guard += 1;
+  }
+  return months;
+}
+
+function salaryAt(plan, month) {
+  let salary = plan.baseSalary;
+  for (const event of plan.events || []) {
+    if (event.type === "raise" && event.month <= month) salary = Math.max(salary, Number(event.amount) || 0);
+  }
+  return salary;
+}
+
+function computeSavingsProjection(savings) {
+  const { goal, plan, deposits } = savings;
+  const months = savingsMonthList(goal.startMonth, goal.deadline);
+  const raiseEvents = (plan.events || []).filter((event) => event.type === "raise");
+  const bonusEvents = (plan.events || []).filter((event) => event.type === "bonus");
+  let latestRaise = plan.baseSalary;
+  const plannedCumulative = [];
+  let running = 0;
+  for (const month of months) {
+    for (const event of raiseEvents) {
+      if (event.month === month) latestRaise = Math.max(latestRaise, Number(event.amount) || 0);
+    }
+    running += latestRaise * (plan.savingsRate / 100);
+    for (const event of bonusEvents) {
+      if (event.month === month) running += Number(event.amount) || 0;
+    }
+    plannedCumulative.push(Math.round(running));
+  }
+  const depositByMonth = {};
+  for (const deposit of deposits) {
+    depositByMonth[deposit.month] = (depositByMonth[deposit.month] || 0) + (Number(deposit.amount) || 0);
+  }
+  const actualCumulative = [];
+  let actualRunning = 0;
+  for (const month of months) {
+    actualRunning += depositByMonth[month] || 0;
+    actualCumulative.push(Math.round(actualRunning));
+  }
+  const projectedTotal = plannedCumulative.length ? plannedCumulative[plannedCumulative.length - 1] : 0;
+  const actualTotal = deposits.reduce((sum, deposit) => sum + (Number(deposit.amount) || 0), 0);
+  return {
+    months,
+    plannedCumulative,
+    actualCumulative,
+    projectedTotal,
+    actualTotal,
+    requiredMonthly: months.length ? Math.round(goal.total / months.length) : 0,
+    gap: projectedTotal - goal.total,
+  };
+}
+
+function renderSavings() {
+  const savings = savingsOf();
+  const projection = computeSavingsProjection(savings);
+  if (elements.svGoal) elements.svGoal.textContent = formatMoney(savings.goal.total);
+  if (elements.svSaved) elements.svSaved.textContent = formatMoney(projection.actualTotal);
+  if (elements.svProgress) {
+    elements.svProgress.textContent = savings.goal.total
+      ? `${Math.min(100, Math.round((projection.actualTotal / savings.goal.total) * 100))}%` : "0%";
+  }
+  if (elements.svProjected) elements.svProjected.textContent = formatMoney(projection.projectedTotal);
+  if (elements.svRequired) elements.svRequired.textContent = formatMoney(projection.requiredMonthly);
+
+  if (elements.svVerdict) {
+    if (!savings.goal.total || !projection.months.length) {
+      elements.svVerdict.textContent = "先在左侧设定目标金额、起止年月和收入计划，这里会给出逐月预测。";
+    } else {
+      const gapText = projection.gap >= 0
+        ? `可超出目标 ${formatMoney(projection.gap)}，计划可行。`
+        : `距目标还差 ${formatMoney(-projection.gap)}。`;
+      const suggestRate = projection.months.length && savings.plan.baseSalary
+        ? Math.min(95, Math.ceil((savings.goal.total / projection.months.length / savings.plan.baseSalary) * 100))
+        : null;
+      const advice = projection.gap >= 0 ? "" : suggestRate
+        ? ` 若不考虑奖金，储蓄率约需提到 ${suggestRate}%。`
+        : "";
+      elements.svVerdict.textContent = `共 ${projection.months.length} 个月：平均每月需存 ${formatMoney(projection.requiredMonthly)}；按当前计划到期预计 ${formatMoney(projection.projectedTotal)}，${gapText}${advice}`;
+    }
+  }
+  renderSavingsChart(projection);
+  renderSavingsEventList();
+  renderSavingsDepositList();
+  refreshIcons();
+}
+
+function renderSavingsChart(projection) {
+  if (!elements.svChart) return;
+  const { months, plannedCumulative, actualCumulative } = projection;
+  if (months.length < 2) {
+    elements.svChart.innerHTML = '<p class="sv-empty">设定好起止年月后，这里会画出计划累计与实际存款的对比曲线。</p>';
+    return;
+  }
+  const goalTotal = savingsOf().goal.total;
+  const values = [...plannedCumulative, ...actualCumulative, goalTotal].filter((value) => value > 0);
+  const max = Math.max(...values, 1);
+  const width = 320;
+  const height = 150;
+  const toPoint = (value, index) => {
+    const x = (index / (months.length - 1)) * (width - 10) + 5;
+    const y = height - 12 - (value / max) * (height - 26);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  };
+  const goalY = height - 12 - (goalTotal / max) * (height - 26);
+  elements.svChart.innerHTML = `
+    <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-label="存钱进度曲线">
+      <line x1="5" y1="${goalY.toFixed(1)}" x2="${width - 5}" y2="${goalY.toFixed(1)}" stroke="#e11d48" stroke-width="1" stroke-dasharray="5 4" opacity=".55" />
+      <polyline points="${plannedCumulative.map(toPoint).join(" ")}" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <polyline points="${actualCumulative.map(toPoint).join(" ")}" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+    <p class="chart-caption">横轴 ${months[0]} → ${months[months.length - 1]}（虚线为目标线）</p>`;
+}
+
+function renderSavingsEventList() {
+  if (!elements.svEventList) return;
+  const events = [...(savingsOf().plan.events || [])].sort((a, b) => (a.month < b.month ? -1 : 1));
+  elements.svEventList.innerHTML = events.length
+    ? events.map((event) => `
+      <div class="sv-event-item">
+        <time>${event.month}</time>
+        <span class="sv-event-tag">${event.type === "raise" ? "涨薪到" : "奖金"}</span>
+        <strong>${formatMoney(event.amount)}</strong>
+        ${event.note ? `<span>${escapeHtml(event.note)}</span>` : ""}
+        <button class="sv-del" type="button" data-delete-sv-event="${event.id}">删除</button>
+      </div>`).join("")
+    : '<p class="sv-empty">还没有收入变化事件。预判跳槽或年终奖，可以加进来一起模拟。</p>';
+}
+
+function renderSavingsDepositList() {
+  if (!elements.svDepositList) return;
+  const deposits = [...savingsOf().deposits].sort((a, b) => (a.month < b.month ? 1 : -1)).slice(0, 50);
+  elements.svDepositList.innerHTML = deposits.length
+    ? deposits.map((deposit) => `
+      <div class="sv-deposit-item">
+        <time>${deposit.month}</time>
+        <strong>${formatMoney(deposit.amount)}</strong>
+        ${deposit.note ? `<span>${escapeHtml(deposit.note)}</span>` : ""}
+        <button class="sv-del" type="button" data-delete-sv-deposit="${deposit.id}">删除</button>
+      </div>`).join("")
+    : '<p class="sv-empty">还没有存款记录，每月存了多少钱记在这里。</p>';
+}
+
+function saveSavingsGoal(event) {
+  event.preventDefault();
+  const savings = savingsOf();
+  savings.goal = {
+    total: Number(elements.svTotal?.value) || 0,
+    deadline: elements.svDeadline?.value || "",
+    startMonth: elements.svStart?.value || today.slice(0, 7),
+  };
+  savings.plan.baseSalary = Number(elements.svSalary?.value) || 0;
+  savings.plan.savingsRate = Math.min(95, Math.max(1, Number(elements.svRate?.value) || 30));
+  persist();
+  renderSavings();
+  showToast("存钱计划已保存");
+}
+
+function addSavingsEvent(event) {
+  event.preventDefault();
+  const month = elements.svEventMonth?.value;
+  const amount = Number(elements.svEventAmount?.value);
+  const type = elements.svEventType?.value === "bonus" ? "bonus" : "raise";
+  if (!month || !amount) return showToast("请填写月份和金额。");
+  const savings = savingsOf();
+  if (!savings.plan.events) savings.plan.events = [];
+  if (savings.plan.events.length >= 100) return showToast("事件数量已达上限。");
+  savings.plan.events.push({ id: createId(), month, type, amount, note: elements.svEventNote?.value.trim() || "" });
+  persist();
+  elements.svEventForm.reset();
+  elements.svEventMonth.value = today.slice(0, 7);
+  renderSavings();
+  showToast("收入事件已加入模拟");
+}
+
+function handleSavingsEventDelete(event) {
+  const button = event.target.closest("[data-delete-sv-event]");
+  if (!button) return;
+  const savings = savingsOf();
+  savings.plan.events = savings.plan.events.filter((item) => item.id !== button.dataset.deleteSvEvent);
+  persist();
+  renderSavings();
+  showToast("事件已删除");
+}
+
+function saveSavingsDeposit(event) {
+  event.preventDefault();
+  const month = elements.svDepositMonth?.value;
+  const amount = Number(elements.svDepositAmount?.value);
+  if (!month || !amount) return showToast("请填写月份和金额。");
+  const savings = savingsOf();
+  if (savings.deposits.length >= 1000) return showToast("存款记录已达上限。");
+  savings.deposits.push({ id: createId(), month, amount, note: elements.svDepositNote?.value.trim() || "" });
+  persist();
+  elements.svDepositForm.reset();
+  elements.svDepositMonth.value = today.slice(0, 7);
+  renderSavings();
+  showToast("存款已记录");
+}
+
+function handleSavingsDepositDelete(event) {
+  const button = event.target.closest("[data-delete-sv-deposit]");
+  if (!button) return;
+  const savings = savingsOf();
+  savings.deposits = savings.deposits.filter((item) => item.id !== button.dataset.deleteSvDeposit);
+  persist();
+  renderSavings();
+  showToast("存款记录已删除");
+}
+
+/* ================= 18. 页面渲染 =================
  * 任何数据变化后调用 render() 统一刷新各列表。 */
 function render() {
   renderSummary();
@@ -3121,7 +3428,7 @@ function emptyTemplate(message) {
     </div>`;
 }
 
-/* ================= 18. 通用工具函数 ================= */
+/* ================= 19. 通用工具函数 ================= */
 function showToast(message) {
   elements.toast.textContent = message;
   elements.toast.classList.add("is-visible");
@@ -3145,6 +3452,7 @@ function loadState() {
     if (stored?.tasks && stored?.records) {
       stored.words = Array.isArray(stored.words) ? stored.words : [];
       stored.fitness = normalizeFitness(stored.fitness);
+      stored.savings = normalizeSavings(stored.savings);
       if (!currentData && legacyData) persistMigratedState(stored);
       return stored;
     }
@@ -3157,6 +3465,7 @@ function loadState() {
     records: [],
     words: [],
     fitness: normalizeFitness(),
+    savings: normalizeSavings(),
   };
 }
 
