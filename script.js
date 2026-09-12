@@ -749,7 +749,12 @@ function mergeAccountState(local, remote) {
       bodyLogs: mergeList(local?.fitness?.bodyLogs, remote?.fitness?.bodyLogs),
     },
     savings: {
-      goal: { ...(local?.savings?.goal || {}), ...(remote?.savings?.goal || {}) },
+      // 空值不覆盖：远端过期的空截止月不会冲掉本地已填的值
+      goal: {
+        total: Number(remote?.savings?.goal?.total) || Number(local?.savings?.goal?.total) || 0,
+        deadline: remote?.savings?.goal?.deadline || local?.savings?.goal?.deadline || "",
+        startMonth: remote?.savings?.goal?.startMonth || local?.savings?.goal?.startMonth || "",
+      },
       plan: {
         baseSalary: Math.max(Number(local?.savings?.plan?.baseSalary) || 0, Number(remote?.savings?.plan?.baseSalary) || 0),
         savingsRate: remote?.savings?.plan?.savingsRate ?? local?.savings?.plan?.savingsRate ?? 30,
@@ -1520,13 +1525,14 @@ async function handleCollabToggle(event) {
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "操作失败。");
     if (checkbox.checked) {
-      const mine = data.xp?.owner?.awarded ? data.xp.owner : data.xp?.friend;
+      const mine = data.youAre === "owner" ? data.xp?.owner : data.xp?.friend;
+      const partner = data.youAre === "owner" ? data.xp?.friend : data.xp?.owner;
       if (mine?.awarded) {
         await loadProfile();
         if (mine.leveledUp) showToast(`协作完成，突破【${profileCache.level.name}】！`);
-        else showToast(`协作完成 +${mine.gain} XP`);
+        else showToast(partner?.awarded ? `协作完成 +${mine.gain} XP` : `协作完成 +${mine.gain} XP（对方今日经验已达上限）`);
       } else {
-        showToast("协作任务完成");
+        showToast("协作任务完成，但你今日任务经验已达上限，明天继续！");
       }
     } else {
       showToast("任务已恢复进行中");

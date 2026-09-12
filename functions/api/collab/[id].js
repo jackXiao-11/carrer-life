@@ -27,6 +27,7 @@ export async function onRequestPatch(context) {
     const forFriend = await awardTaskXp(env, task.friend_id, "collab");
     return json({
       ok: true,
+      youAre: task.owner_id === session.user.id ? "owner" : "friend",
       xp: {
         owner: { awarded: forOwner.awarded, gain: forOwner.gain || 0, leveledUp: forOwner.leveledUp || false },
         friend: { awarded: forFriend.awarded, gain: forFriend.gain || 0, leveledUp: forFriend.leveledUp || false },

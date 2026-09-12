@@ -4,7 +4,7 @@
  * 配额：站长 3GB；普通用户等级×100MB，全体共享 2GB。
  * 文件内容按 700KB 分片 base64 存 file_chunks 表（D1 单参数上限 1MB）。
  */
-import { getSessionUser, json, methodNotAllowed, sameOrigin } from "./_lib.js";
+import { ADMIN_EMAIL, getSessionUser, json, methodNotAllowed, sameOrigin } from "./_lib.js";
 import { ensureProfile } from "./_profile.js";
 import { getLevelInfo, shanghaiToday } from "./_levels.js";
 
@@ -12,7 +12,6 @@ const MB = 1024 * 1024;
 const MAX_FILE_SIZE = 5 * MB;
 const MAX_FILE_COUNT = 500;
 const QUOTA_PER_LEVEL = 100 * MB;
-const ADMIN_EMAIL = "2435726542@qq.com";
 const ADMIN_QUOTA = 3 * 1024 * MB;
 const NON_ADMIN_GLOBAL_CAP = 2 * 1024 * MB;
 const CHUNK_SIZE = 700 * 1024;

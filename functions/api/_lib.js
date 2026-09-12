@@ -1,6 +1,8 @@
 const SESSION_COOKIE = "career_life_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
 const MAX_JSON_BYTES = 1_000_000;
+// 超级管理员（站长）邮箱：3GB 存储特权 + 排行榜徽章，全局唯一定义处。
+const ADMIN_EMAIL = "2435726542@qq.com";
 
 export function json(data, status = 200, headers = {}) {
   return new Response(JSON.stringify(data), {
@@ -125,4 +127,4 @@ export async function verifyPassword(password, salt, expectedHash) {
   return difference === 0;
 }
 
-export { SESSION_COOKIE, SESSION_TTL_SECONDS, MAX_JSON_BYTES };
+export { SESSION_COOKIE, SESSION_TTL_SECONDS, MAX_JSON_BYTES, ADMIN_EMAIL };

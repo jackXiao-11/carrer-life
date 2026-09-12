@@ -1,5 +1,5 @@
 /** 广场排行榜：经验前十（含头像/站长标记/连签/被膜拜数）+ 全站统计 + 我的排名。 */
-import { getSessionUser, json, methodNotAllowed, sameOrigin } from "./_lib.js";
+import { ADMIN_EMAIL, getSessionUser, json, methodNotAllowed, sameOrigin } from "./_lib.js";
 import { getLevelInfo, shanghaiToday } from "./_levels.js";
 
 export async function onRequestGet(context) {
@@ -17,7 +17,7 @@ export async function onRequestGet(context) {
     rank: index + 1,
     userId: row.user_id,
     displayName: row.display_name,
-    isAdmin: row.email === "2435726542@qq.com",
+    isAdmin: row.email === ADMIN_EMAIL,
     avatar: row.avatar || null,
     xp: row.xp,
     level: getLevelInfo(row.xp).level,

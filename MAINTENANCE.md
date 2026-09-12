@@ -68,7 +68,7 @@ D1 数据库（SQLite）—— 账号、修为、好友、文件
 | 云存储配额 | 站长 3GB；普通 = 等级×100MB | `files.js` 顶部常量 |
 | 全站总闸 | 普通用户合计 2GB（D1 免费 5GB） | `files.js` 的 `NON_ADMIN_GLOBAL_CAP` |
 | 存储资格 | Lv.3 + 14 天内有签到 | `files.js` 的 `storageEligibility()` |
-| 站长邮箱 | 2435726542@qq.com | `files.js` + `leaderboard.js` 的 `ADMIN_EMAIL`（**两处**） |
+| 站长邮箱 | 2435726542@qq.com | `functions/api/_lib.js` 的 `ADMIN_EMAIL`（**唯一定义处**，其他文件从此导入） |
 | 单文件上限 | 5MB | `files.js` 的 `MAX_FILE_SIZE` |
 
 ## 四、常见维护任务
