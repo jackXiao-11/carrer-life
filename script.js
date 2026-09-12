@@ -2935,12 +2935,18 @@ function fillSavingsForm() {
   const savings = savingsOf();
   const monthNow = today.slice(0, 7);
   if (elements.svTotal) elements.svTotal.value = savings.goal.total || "";
-  if (elements.svDeadline) elements.svDeadline.value = savings.goal.deadline || "";
+  if (elements.svDeadline) elements.svDeadline.value = savings.goal.deadline || defaultDeadline(monthNow);
   if (elements.svStart) elements.svStart.value = savings.goal.startMonth || monthNow;
   if (elements.svSalary) elements.svSalary.value = savings.plan.baseSalary || "";
   if (elements.svRate) elements.svRate.value = savings.plan.savingsRate || 30;
   if (elements.svEventMonth) elements.svEventMonth.value = monthNow;
   if (elements.svDepositMonth) elements.svDepositMonth.value = monthNow;
+}
+
+function defaultDeadline(startMonth) {
+  const [year, month] = startMonth.split("-").map(Number);
+  const target = new Date(year, month - 1 + 36, 1);
+  return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, "0")}`;
 }
 
 function formatMoney(value) {
@@ -2993,7 +2999,11 @@ function computeSavingsProjection(savings) {
     depositByMonth[deposit.month] = (depositByMonth[deposit.month] || 0) + (Number(deposit.amount) || 0);
   }
   const actualCumulative = [];
-  let actualRunning = 0;
+  let actualRunning = months.length
+    ? deposits
+      .filter((deposit) => deposit.month < months[0])
+      .reduce((sum, deposit) => sum + (Number(deposit.amount) || 0), 0)
+    : 0;
   for (const month of months) {
     actualRunning += depositByMonth[month] || 0;
     actualCumulative.push(Math.round(actualRunning));
@@ -3104,10 +3114,16 @@ function renderSavingsDepositList() {
 function saveSavingsGoal(event) {
   event.preventDefault();
   const savings = savingsOf();
+  let startMonth = elements.svStart?.value || today.slice(0, 7);
+  let deadline = elements.svDeadline?.value || defaultDeadline(startMonth);
+  if (deadline < startMonth) {
+    [startMonth, deadline] = [deadline, startMonth];
+    showToast("截止月份早于开始月份，已自动交换");
+  }
   savings.goal = {
     total: Number(elements.svTotal?.value) || 0,
-    deadline: elements.svDeadline?.value || "",
-    startMonth: elements.svStart?.value || today.slice(0, 7),
+    deadline,
+    startMonth,
   };
   savings.plan.baseSalary = Number(elements.svSalary?.value) || 0;
   savings.plan.savingsRate = Math.min(95, Math.max(1, Number(elements.svRate?.value) || 30));
