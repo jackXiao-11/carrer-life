@@ -358,7 +358,17 @@ function bindEvents() {
     .querySelector("#cancel-dialog-button")
     .addEventListener("click", closeTaskDialog);
   elements.taskDialog.addEventListener("click", (event) => {
-    if (event.target === elements.taskDialog) closeTaskDialog();
+    if (event.target !== elements.taskDialog) return;
+    // 空表单直接关闭（保留便利性）；有内容先确认，防止误触丢失
+    const title = elements.taskForm.elements.title?.value?.trim();
+    const notes = elements.taskForm.elements.notes?.value?.trim();
+    if (!title && !notes) {
+      closeTaskDialog();
+      return;
+    }
+    if (window.confirm("关闭后未保存的内容将丢失，确定要关闭吗？")) {
+      closeTaskDialog();
+    }
   });
 
   elements.taskForm.addEventListener("submit", saveTask);
