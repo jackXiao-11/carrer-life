@@ -6,7 +6,7 @@
  *   4. 页面视图切换       5. 账号与云同步       6. 修为/等级/头像
  *   7. 任务验收+AI抽查    8. 云存储文件库       9. 签到/统计图表
  *   10. 好友与协作任务    11. 广场排行榜        12. AI 助手聊天
- *   13. 任务表单          14. AI 悬浮球拖动     15. 工作记录
+ *   13. 任务表单          14. AI 悬浮球拖动（桌面宠物鼬） 15. 工作记录
  *   16. 页面渲染          17. 通用工具函数
  * 维护说明见项目根目录 MAINTENANCE.md
  * ============================================================ */
@@ -37,6 +37,25 @@ const modelNotes = {
   deepseek: "可添加任务、完成任务与记录成果",
   codex: "可添加任务、完成任务与记录成果",
 };
+
+/* 桌面宠物（Q版鼬）语录配置：initialize() 早期就会用到，须在此声明 */
+const PET_LINES = [
+  "今天，想解开什么任务？",
+  "你的计划，就是你的忍道。",
+  "别急，变强是一点一点积累的。",
+  "真正的对手，是昨天的自己。",
+  "学习累了？我会替你看着进度。",
+  "工作、软件、英语……都在我注视之下。",
+  "原谅自己今天到此为止，也是一种强大。",
+  "今天流的汗，都是将来的底气。",
+  "任务清得干净，很宇智波。",
+];
+const PET_FIRST_DELAY = 6000;
+const PET_MIN_INTERVAL = 42000;
+const PET_MAX_INTERVAL = 90000;
+const PET_DISPLAY_TIME = 5000;
+const PET_HOVER_COOLDOWN = 15000;
+const LAUNCHER_POS_KEY = "career-life-launcher-pos";
 
 const today = getLocalDate();
 let activeFilter = "all";
@@ -147,6 +166,7 @@ const elements = {
   modelNote: document.querySelector("#model-note"),
   chatWindow: document.querySelector("#ai-window"),
   chatLauncher: document.querySelector("#chat-launcher"),
+  petBubble: document.querySelector("#pet-bubble"),
   chatModel: document.querySelector("#chat-model"),
   accountButton: document.querySelector("#account-button"),
   accountLabel: document.querySelector("#account-label"),
@@ -453,6 +473,7 @@ function bindEvents() {
     if (elements.quizAnswerButton) elements.quizAnswerButton.disabled = !elements.quizBody.querySelector("input[name='quiz-option']:checked");
   });
   bindLauncherDrag();
+  bindPetChatter();
   elements.chatModel.addEventListener("change", () =>
     selectModel(elements.chatModel.value),
   );
@@ -1800,6 +1821,7 @@ function toggleChat(open) {
   if (open && elements.chatWindow.hidden)
     chatReturnFocus = document.activeElement;
   elements.chatWindow.hidden = !open;
+  elements.petBubble?.classList.remove("is-visible");
   syncChatMode();
   document
     .querySelectorAll("[data-chat-toggle]")
@@ -1808,7 +1830,7 @@ function toggleChat(open) {
     "aria-label",
     open ? "收起 AI 助手" : "打开 AI 助手",
   );
-  elements.chatLauncher.title = open ? "收起 AI 助手" : "打开 AI 助手";
+  elements.chatLauncher.title = open ? "收起对话" : "和鼬聊两句";
   if (open) {
     document.querySelector(".unread-dot").hidden = true;
     elements.chatInput.focus({ preventScroll: true });
@@ -2301,9 +2323,9 @@ function renderChatMessages(forceScroll = true) {
   if (!chatMessages.length) {
     elements.chatMessages.innerHTML = `
       <div class="chat-welcome">
-        <span class="welcome-symbol"><i data-lucide="sparkles"></i></span>
-        <h3>今天，一起解决什么？</h3>
-        <p>学习中的疑问，工作里的灵感。</p>
+        <span class="welcome-symbol"><svg viewBox="18 6 104 100" width="52" height="50" aria-hidden="true" focusable="false"><polygon fill="#242a36" points="70,12 85.3,25 105.4,26.6 107,46.7 120,62 107,77.3 105.4,97.4 85.3,99 70,112 54.7,99 34.6,97.4 33,77.3 20,62 33,46.7 34.6,26.6 54.7,25"/><ellipse cx="70" cy="66" rx="30" ry="28" fill="#ffe0bd"/><ellipse cx="47" cy="82" rx="4.5" ry="2.6" fill="#f6b69a" opacity=".75"/><ellipse cx="93" cy="82" rx="4.5" ry="2.6" fill="#f6b69a" opacity=".75"/><rect x="42" y="47" width="56" height="13" rx="3" fill="#aab4c8"/><rect x="42" y="47" width="56" height="13" rx="3" fill="none" stroke="#6e7a90" stroke-width="1"/><path d="M70 53.5 a4.5 4.5 0 1 0 -4.5 -4.5 a2.2 2.2 0 1 0 2.2 2.2" fill="none" stroke="#4e5a70" stroke-width="1.6"/><line x1="45" y1="46.5" x2="95" y2="60.5" stroke="#5a6478" stroke-width="2.4" stroke-linecap="round"/><polygon fill="#242a36" points="42,50 46,36 52,48 58,34 64,48 70,32 76,48 82,34 88,48 94,36 98,50"/><g><ellipse cx="56" cy="73" rx="7" ry="8.5" fill="#fff"/><circle cx="56" cy="73.5" r="5" fill="#d0453e"/><circle cx="56" cy="73.5" r="2.2" fill="#221822"/><circle cx="53.5" cy="70.5" r="1.1" fill="#fff"/></g><g><ellipse cx="84" cy="73" rx="7" ry="8.5" fill="#fff"/><circle cx="84" cy="73.5" r="5" fill="#d0453e"/><circle cx="84" cy="73.5" r="2.2" fill="#221822"/><circle cx="81.5" cy="70.5" r="1.1" fill="#fff"/></g><path d="M60 79 L57 91" stroke="#d8a075" stroke-width="1.7" stroke-linecap="round" fill="none"/><path d="M80 79 L83 91" stroke="#d8a075" stroke-width="1.7" stroke-linecap="round" fill="none"/><path d="M64 88 q6 4.5 12 0" stroke="#b3765a" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span>
+        <h3>今天，一起解开什么任务？</h3>
+        <p>学习中的疑问，工作里的灵感，我都在看。</p>
         <div class="chat-prompts">
           <button class="prompt-button" type="button" data-prompt="请帮我制定一个 30 分钟的软件学习计划。"><i data-lucide="list-todo"></i>安排今天的学习计划<i data-lucide="arrow-up-right"></i></button>
           <button class="prompt-button" type="button" data-prompt="请用零基础能理解的方式解释 ROS 2 的 Node 和 Topic，并举一个例子。"><i data-lucide="code-2"></i>理解 ROS 2 的核心概念<i data-lucide="arrow-up-right"></i></button>
@@ -2623,6 +2645,54 @@ function bindLauncherDrag() {
   window.addEventListener("resize", () => {
     const position = loadLauncherPosition();
     if (position) applyLauncherPosition(position.left, position.top);
+  });
+}
+
+/* ================= 14b. 桌面宠物语录 =================
+ * Q 版鼬会定期冒泡说一句台词；聊天窗打开时保持安静。
+ * 语录常量 PET_* 声明在文件顶部常量区（initialize 会提前用到）。 */
+let petChatterTimer = null;
+let petHideTimer = null;
+let petLastHover = 0;
+
+function showPetBubble(text) {
+  const bubble = elements.petBubble;
+  if (!bubble || !text) return;
+  clearTimeout(petHideTimer);
+  bubble.textContent = text;
+  bubble.classList.add("is-visible");
+  petHideTimer = setTimeout(
+    () => bubble.classList.remove("is-visible"),
+    PET_DISPLAY_TIME,
+  );
+}
+
+function schedulePetChatter() {
+  clearTimeout(petChatterTimer);
+  const delay =
+    PET_MIN_INTERVAL + Math.random() * (PET_MAX_INTERVAL - PET_MIN_INTERVAL);
+  petChatterTimer = setTimeout(() => {
+    if (elements.chatWindow?.hidden)
+      showPetBubble(PET_LINES[Math.floor(Math.random() * PET_LINES.length)]);
+    schedulePetChatter();
+  }, delay);
+}
+
+function bindPetChatter() {
+  if (!elements.petBubble || !elements.chatLauncher) return;
+  setTimeout(() => {
+    if (elements.chatWindow?.hidden)
+      showPetBubble("我是鼬。点我，就能聊聊你的计划。");
+    schedulePetChatter();
+  }, PET_FIRST_DELAY);
+  elements.chatLauncher.addEventListener("mouseenter", () => {
+    if (
+      elements.chatWindow?.hidden &&
+      Date.now() - petLastHover > PET_HOVER_COOLDOWN
+    ) {
+      petLastHover = Date.now();
+      showPetBubble("点我说话，或拖到顺手的位置。");
+    }
   });
 }
 
