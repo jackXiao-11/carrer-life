@@ -1353,50 +1353,52 @@
     >
       <span class="pet-bubble" id="pet-bubble" role="status" aria-live="polite"></span>
       <svg class="pet-avatar" viewBox="0 0 140 150" aria-hidden="true" focusable="false">
-        <!-- 后发（菠萝头轮廓） -->
-        <polygon fill="#242a36" points="70,12 85.3,25 105.4,26.6 107,46.7 120,62 107,77.3 105.4,97.4 85.3,99 70,112 54.7,99 34.6,97.4 33,77.3 20,62 33,46.7 34.6,26.6 54.7,25"/>
-        <!-- 脸 -->
-        <ellipse cx="70" cy="66" rx="30" ry="28" fill="#ffe0bd"/>
+        <!-- 后发圆顶（深蓝黑） -->
+        <ellipse cx="70" cy="52" rx="45" ry="42" fill="#2b3352"/>
+        <!-- 头发高光 -->
+        <path d="M44,32 Q54,21 71,20" stroke="#3d476e" stroke-width="2.4" fill="none" stroke-linecap="round" opacity=".9"/>
+        <path d="M96,32 Q88,23 79,21" stroke="#3d476e" stroke-width="2.4" fill="none" stroke-linecap="round" opacity=".9"/>
+        <!-- 脸（白皙） -->
+        <ellipse cx="70" cy="66" rx="28" ry="26" fill="#ffe4cf"/>
+        <!-- 中分锯齿刘海 -->
+        <path d="M40,56 L47,67 L54,57.5 L63,68 L70,57.5 L77,68 L86,57.5 L93,67 L100,56 L100,55 L40,55 Z" fill="#2b3352"/>
+        <!-- 两侧长鬓发（垂至衣领） -->
+        <path d="M40,52 Q34,74 37,94 Q38,104 46,108 Q47,95 43.5,75 Q42.5,60 45,52 Z" fill="#2b3352"/>
+        <path d="M100,52 Q106,74 103,94 Q102,104 94,108 Q93,95 96.5,75 Q97.5,60 95,52 Z" fill="#2b3352"/>
         <!-- 腮红 -->
-        <ellipse cx="45" cy="84.5" rx="4.6" ry="2.6" fill="#f6b69a" opacity=".8"/>
-        <ellipse cx="95" cy="84.5" rx="4.6" ry="2.6" fill="#f6b69a" opacity=".8"/>
-        <!-- 木叶护额（带划痕） -->
-        <rect x="42" y="47" width="56" height="13" rx="3" fill="#aab4c8"/>
-        <rect x="42" y="47" width="56" height="13" rx="3" fill="none" stroke="#6e7a90" stroke-width="1"/>
-        <path d="M70 54 a4.8 4.8 0 1 0 -4.8 -4.8 a2.3 2.3 0 1 0 2.3 2.3" fill="none" stroke="#46536b" stroke-width="1.7"/>
-        <line x1="45" y1="46.5" x2="95" y2="60.5" stroke="#5a6478" stroke-width="2.4" stroke-linecap="round"/>
-        <!-- 锯齿刘海 -->
-        <polygon fill="#242a36" points="42,50 46,36 52,48 58,34 64,48 70,32 76,48 82,34 88,48 94,36 98,50"/>
-        <!-- 写轮眼（眨眼动画组） -->
+        <ellipse cx="51" cy="80.5" rx="4.4" ry="2.3" fill="#f7bfa8" opacity=".7"/>
+        <ellipse cx="89" cy="80.5" rx="4.4" ry="2.3" fill="#f7bfa8" opacity=".7"/>
+        <!-- 幼年黑瞳大眼（带长睫毛感） -->
         <g class="pet-eye">
-          <ellipse cx="56" cy="72.5" rx="6.6" ry="7.6" fill="#fff"/>
-          <circle cx="56" cy="73" r="5.6" fill="#d0453e"/>
-          <circle cx="56" cy="73" r="2.6" fill="#221822"/>
-          <circle cx="53.4" cy="70.2" r="1.2" fill="#fff"/>
-          <circle cx="52.4" cy="76.6" r=".9" fill="#221822"/>
-          <circle cx="59.6" cy="70.9" r=".9" fill="#221822"/>
+          <ellipse cx="56.5" cy="72" rx="5.6" ry="7.2" fill="#17171d"/>
+          <circle cx="58.6" cy="69.4" r="1.9" fill="#fff"/>
+          <circle cx="54.4" cy="75.2" r=".9" fill="#fff" opacity=".8"/>
         </g>
         <g class="pet-eye">
-          <ellipse cx="84" cy="72.5" rx="6.6" ry="7.6" fill="#fff"/>
-          <circle cx="84" cy="73" r="5.6" fill="#d0453e"/>
-          <circle cx="84" cy="73" r="2.6" fill="#221822"/>
-          <circle cx="81.4" cy="70.2" r="1.2" fill="#fff"/>
-          <circle cx="80.4" cy="76.6" r=".9" fill="#221822"/>
-          <circle cx="87.6" cy="70.9" r=".9" fill="#221822"/>
+          <ellipse cx="83.5" cy="72" rx="5.6" ry="7.2" fill="#17171d"/>
+          <circle cx="85.6" cy="69.4" r="1.9" fill="#fff"/>
+          <circle cx="81.4" cy="75.2" r=".9" fill="#fff" opacity=".8"/>
         </g>
-        <!-- 泪痕（鼬的标志） -->
-        <path d="M61 80 L58 91" stroke="#c98d63" stroke-width="1.7" stroke-linecap="round" fill="none"/>
-        <path d="M79 80 L82 91" stroke="#c98d63" stroke-width="1.7" stroke-linecap="round" fill="none"/>
-        <!-- 鼻与嘴 -->
-        <path d="M69.2 79 q1.6 1.6 0 2.6" stroke="#d8a075" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-        <path d="M64 86.5 q6 4.5 12 0" stroke="#b3765a" stroke-width="2.1" fill="none" stroke-linecap="round"/>
-        <!-- 晓袍身 -->
-        <path fill="#282f3b" d="M46 116 C46 106 56 100 70 100 C84 100 94 106 94 116 L99 150 L41 150 Z"/>
-        <!-- 红云纹 -->
-        <path fill="#c0453e" d="M58 124 a5.5 5.5 0 0 1 10.3 -2.7 a5 5 0 0 1 8.7 4.7 a4.5 4.5 0 0 1 -2.6 8 h-11.8 a4.5 4.5 0 0 1 -4.6 -10 z"/>
-        <!-- 高领 -->
-        <path fill="#1c212b" d="M55 94 Q70 100 85 94 L93 114 Q70 124 47 114 Z"/>
-        <path d="M55 94 Q70 100 85 94" stroke="#8f2f2c" stroke-width="2.5" fill="none"/>
+        <!-- 鼻与平静小嘴 -->
+        <path d="M69.3 80 q1.5 1.3 0 2.3" stroke="#dda47e" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+        <path d="M65 87 q5 1.8 10 0" stroke="#c98a68" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+        <!-- 深蓝色高领忍者服 -->
+        <path d="M44 118 C44 104 55 97 70 97 C85 97 96 104 96 118 L100 150 L40 150 Z" fill="#2f3d8c"/>
+        <!-- 立起的高领 -->
+        <path d="M52 92 Q70 101 88 92 L93 112 Q70 122 47 112 Z" fill="#273372"/>
+        <path d="M52 92 Q70 101 88 92" stroke="#1e2856" stroke-width="2" fill="none"/>
+        <!-- 宇智波团扇家纹 -->
+        <circle cx="70" cy="129" r="7.6" fill="#f3ead8"/>
+        <circle cx="70" cy="138.6" r="4" fill="#f3ead8"/>
+        <rect x="68.7" y="140.5" width="2.6" height="8.5" rx="1.2" fill="#f3ead8"/>
+        <!-- 白色木叶护额 -->
+        <rect x="40" y="43.5" width="60" height="13.5" rx="3.5" fill="#e9eef6"/>
+        <rect x="40" y="43.5" width="60" height="13.5" rx="3.5" fill="none" stroke="#33407a" stroke-width="1.4"/>
+        <rect x="40" y="43.8" width="60" height="2.6" fill="#33407a"/>
+        <rect x="40" y="55" width="60" height="2" fill="#33407a"/>
+        <!-- 木叶村标志 -->
+        <path d="M74.6 53.4 a4.6 4.6 0 1 0 -4.6 -4.6 a2.2 2.2 0 1 0 2.2 2.2" fill="none" stroke="#45537a" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M76.2 53 L80.8 56.2 L74.4 54.6 Z" fill="#45537a"/>
       </svg>
       <span class="pet-shadow" aria-hidden="true"></span>
       <span class="unread-dot" hidden></span>
