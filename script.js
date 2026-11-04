@@ -2558,7 +2558,6 @@ function completeTaskFromButton(id) {
 
 let launcherDrag = null;
 let launcherSuppressClick = false;
-const LAUNCHER_POS_KEY = "career-life-launcher-pos";
 
 /* ================= 14. AI 悬浮球拖动 =================
  * 点击=打开聊天，拖动=移动位置；位置存 localStorage。 */
